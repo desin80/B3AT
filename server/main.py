@@ -137,6 +137,80 @@ def recalculate_all_stats(conn):
     return len(insert_list)
 
 
+def update_specific_stat(conn, atk_team_list, def_team_list):
+    cursor = conn.cursor()
+
+    atk_strict, atk_smart = generate_signatures(atk_team_list)
+    def_strict, def_smart = generate_signatures(def_team_list)
+
+    atk_json = json.dumps(atk_team_list)
+    def_json = json.dumps(def_team_list)
+
+    atk_sig_fast = ",".join(map(str, sorted(atk_team_list)))
+    def_sig_fast = ",".join(map(str, sorted(def_team_list)))
+
+    cursor.execute(
+        """
+        SELECT 
+            season,
+            COUNT(*) as total, 
+            SUM(is_win) as wins, 
+            MAX(timestamp) as last_seen
+        FROM battles
+        WHERE atk_team_sig = ? AND def_team_sig = ? 
+          AND atk_team_json = ? AND def_team_json = ?
+        GROUP BY season
+    """,
+        (atk_sig_fast, def_sig_fast, atk_json, def_json),
+    )
+
+    rows = cursor.fetchall()
+
+    if not rows:
+        return 0
+
+    updated_count = 0
+    for row in rows:
+        season = row["season"]
+        total = row["total"]
+        wins = row["wins"]
+        last_seen = row["last_seen"]
+
+        w_score = wilson_lower_bound(wins, total)
+        p_mean = posterior_mean(wins, total)
+
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO arena_stats (
+                season, 
+                atk_strict_sig, def_strict_sig, 
+                atk_smart_sig, def_smart_sig,
+                atk_team_json, def_team_json, 
+                total_battles, total_wins, last_seen, 
+                wilson_score, avg_win_rate
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                season,
+                atk_strict,
+                def_strict,
+                atk_smart,
+                def_smart,
+                atk_json,
+                def_json,
+                total,
+                wins,
+                last_seen,
+                w_score,
+                p_mean,
+            ),
+        )
+        updated_count += 1
+
+    conn.commit()
+    return updated_count
+
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -207,6 +281,14 @@ def init_db():
         created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_comments_sigs ON comments(atk_sig, def_sig);
+    """
+    )
+
+    cursor.executescript(
+        """
+    CREATE INDEX IF NOT EXISTS idx_battles_atk_sig ON battles(atk_team_sig);
+    CREATE INDEX IF NOT EXISTS idx_battles_def_sig ON battles(def_team_sig);
+    CREATE INDEX IF NOT EXISTS idx_battles_matchup ON battles(atk_team_sig, def_team_sig);
     """
     )
 
@@ -530,14 +612,11 @@ def manual_add(req: ManualAddRequest):
     def_json = json.dumps(req.def_team)
 
     try:
-
         records_to_add = []
-
         for _ in range(req.wins):
             records_to_add.append(
                 (req.season, now, 1, atk_sig, def_sig, atk_json, def_json)
             )
-
         for _ in range(req.losses):
             records_to_add.append(
                 (req.season, now, 0, atk_sig, def_sig, atk_json, def_json)
@@ -553,10 +632,10 @@ def manual_add(req: ManualAddRequest):
             )
             conn.commit()
 
-        stats_count = recalculate_all_stats(conn)
+        update_specific_stat(conn, req.atk_team, req.def_team)
 
         return {
-            "message": f"Added {len(records_to_add)} records. Stats synced ({stats_count} entries)."
+            "message": f"Added {len(records_to_add)} records. Stats incrementally updated."
         }
 
     except Exception as e:
