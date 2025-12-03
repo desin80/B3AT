@@ -1,6 +1,6 @@
 import sqlite3
 import json
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -9,6 +9,16 @@ from datetime import datetime
 import time
 
 app = FastAPI()
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+    print(f"{request.method} {request.url.path} - {process_time:.4f}s")
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,12 +34,10 @@ DB_PATH = "../arena.db"
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-
     return conn
 
 
 def wilson_lower_bound(wins, n, z=1.96):
-    """计算 Wilson Score Interval 下界"""
     if n == 0:
         return 0.0
     phat = wins / n
@@ -43,20 +51,12 @@ def wilson_lower_bound(wins, n, z=1.96):
 
 
 def posterior_mean(wins, n, alpha=1, beta=1):
-    """计算贝叶斯后验均值"""
     return (wins + alpha) / (n + alpha + beta)
 
 
 def generate_signatures(team_list):
-    """
-    生成 Strict 和 Smart 两种指纹
-    Strict: 完全保留顺序
-    Smart: 忽略后排顺序
-    """
     ids = [str(i) for i in team_list]
-
     strict_sig = ",".join(ids)
-
     if len(ids) >= 6:
         strikers = ids[:4]
         specials = sorted(ids[4:])
@@ -68,27 +68,27 @@ def generate_signatures(team_list):
 
 def recalculate_all_stats(conn):
     cursor = conn.cursor()
-
     cursor.execute("DELETE FROM arena_stats")
 
     cursor.execute(
         """
         SELECT 
             season, 
+            tag, 
             atk_team_json, 
             def_team_json, 
             COUNT(*), 
             SUM(is_win), 
             MAX(timestamp)
         FROM battles
-        GROUP BY season, atk_team_json, def_team_json
+        GROUP BY season, tag, atk_team_json, def_team_json
     """
     )
     rows = cursor.fetchall()
 
     insert_list = []
     for row in rows:
-        season, atk_json, def_json, total, wins, last_seen = row
+        season, tag, atk_json, def_json, total, wins, last_seen = row
 
         try:
             atk_team = json.loads(atk_json)
@@ -105,6 +105,7 @@ def recalculate_all_stats(conn):
         insert_list.append(
             (
                 season,
+                tag,
                 atk_strict,
                 def_strict,
                 atk_smart,
@@ -123,12 +124,13 @@ def recalculate_all_stats(conn):
         """
     INSERT INTO arena_stats (
         season, 
+        tag,
         atk_strict_sig, def_strict_sig, 
         atk_smart_sig, def_smart_sig,
         atk_team_json, def_team_json, 
         total_battles, total_wins, last_seen, 
         wilson_score, avg_win_rate
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         insert_list,
     )
@@ -137,7 +139,7 @@ def recalculate_all_stats(conn):
     return len(insert_list)
 
 
-def update_specific_stat(conn, atk_team_list, def_team_list):
+def update_specific_stat(conn, atk_team_list, def_team_list, tag=""):
     cursor = conn.cursor()
 
     atk_strict, atk_smart = generate_signatures(atk_team_list)
@@ -159,13 +161,13 @@ def update_specific_stat(conn, atk_team_list, def_team_list):
         FROM battles
         WHERE atk_team_sig = ? AND def_team_sig = ? 
           AND atk_team_json = ? AND def_team_json = ?
+          AND tag = ? 
         GROUP BY season
     """,
-        (atk_sig_fast, def_sig_fast, atk_json, def_json),
+        (atk_sig_fast, def_sig_fast, atk_json, def_json, tag),
     )
 
     rows = cursor.fetchall()
-
     if not rows:
         return 0
 
@@ -183,15 +185,17 @@ def update_specific_stat(conn, atk_team_list, def_team_list):
             """
             INSERT OR REPLACE INTO arena_stats (
                 season, 
+                tag,
                 atk_strict_sig, def_strict_sig, 
                 atk_smart_sig, def_smart_sig,
                 atk_team_json, def_team_json, 
                 total_battles, total_wins, last_seen, 
                 wilson_score, avg_win_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 season,
+                tag,
                 atk_strict,
                 def_strict,
                 atk_smart,
@@ -220,6 +224,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS battles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         season INTEGER NOT NULL,
+        tag TEXT DEFAULT '', 
         timestamp INTEGER NOT NULL,
         is_win INTEGER NOT NULL,
         atk_team_sig TEXT NOT NULL, 
@@ -244,6 +249,7 @@ def init_db():
         """
     CREATE TABLE IF NOT EXISTS arena_stats (
         season INTEGER,
+        tag TEXT DEFAULT '',
 
         atk_strict_sig TEXT,
         def_strict_sig TEXT,
@@ -260,7 +266,7 @@ def init_db():
         wilson_score REAL, 
         avg_win_rate REAL,
 
-        PRIMARY KEY (season, atk_strict_sig, def_strict_sig)
+        PRIMARY KEY (season, tag, atk_strict_sig, def_strict_sig)
     );
 
     CREATE INDEX IF NOT EXISTS idx_stats_season ON arena_stats(season);
@@ -278,9 +284,11 @@ def init_db():
         def_sig TEXT NOT NULL,
         username TEXT,
         content TEXT NOT NULL,
+        parent_id INTEGER DEFAULT NULL,
         created_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_comments_sigs ON comments(atk_sig, def_sig);
+    CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
     """
     )
 
@@ -294,7 +302,7 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("Database initialized successfully (Tables checked/created).")
+    print("Database initialized successfully.")
 
 
 init_db()
@@ -303,10 +311,16 @@ init_db()
 class BattleRecord(BaseModel):
     id: int
     season: int
+    tag: str = ""
     timestamp: int
     is_win: bool
     attackteam: List[int]
     defendteam: List[int]
+
+
+class DeleteSummaryModel(BaseModel):
+    atk_sig: str
+    def_sig: str
 
 
 @app.get("/")
@@ -320,6 +334,7 @@ def get_battles(
     limit: int = 20,
     season: Optional[int] = None,
     unit_id: Optional[int] = None,
+    tag: Optional[str] = None,
 ):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -331,6 +346,10 @@ def get_battles(
     if season:
         query += " AND season = ?"
         params.append(season)
+
+    if tag is not None:
+        query += " AND tag = ?"
+        params.append(tag)
 
     if unit_id:
         query += """ AND id IN (
@@ -350,6 +369,7 @@ def get_battles(
             {
                 "id": row["id"],
                 "season": row["season"],
+                "tag": row["tag"],  # 返回 tag
                 "timestamp": row["timestamp"],
                 "win": bool(row["is_win"]),
                 "attackteam": json.loads(row["atk_team_json"]),
@@ -374,15 +394,16 @@ def get_summaries(
     atk_slots: Optional[str] = None,
     def_slots: Optional[str] = None,
     ignore_specials: bool = False,
+    tag: Optional[str] = None,
 ):
     conn = get_db_connection()
     cursor = conn.cursor()
     offset = (page - 1) * limit
 
     if ignore_specials:
-
         select_clause = """
             season,
+            tag,
             atk_smart_sig as atk_sig, 
             def_smart_sig as def_sig,
             MAX(atk_team_json) as atk_json,
@@ -391,11 +412,11 @@ def get_summaries(
             SUM(total_wins) as wins,
             MAX(last_seen) as last_time
         """
-        group_by_clause = "GROUP BY season, atk_smart_sig, def_smart_sig"
+        group_by_clause = "GROUP BY season, tag, atk_smart_sig, def_smart_sig"
     else:
-
         select_clause = """
             season,
+            tag,
             atk_strict_sig as atk_sig,
             def_strict_sig as def_sig,
             atk_team_json as atk_json,
@@ -403,8 +424,8 @@ def get_summaries(
             total_battles as total,
             total_wins as wins,
             last_seen as last_time,
-            wilson_score, -- 原表已有
-            avg_win_rate  -- 原表已有
+            wilson_score, 
+            avg_win_rate
         """
         group_by_clause = ""
 
@@ -414,6 +435,10 @@ def get_summaries(
     if season:
         query += " AND season = ?"
         params.append(season)
+
+    if tag is not None:
+        query += " AND tag = ?"
+        params.append(tag)
 
     if atk_contains:
         for i in atk_contains.split(","):
@@ -481,16 +506,13 @@ def get_summaries(
     sort_key = "total" if ignore_specials else "total_battles"
     if sort == "default" or sort == "total_asc":
         pass
-
     elif sort == "newest":
         sort_key = "last_time" if ignore_specials else "last_seen"
     elif "win_rate" in sort:
         sort_key = get_field("win_rate", ignore_specials)
     elif sort == "composite":
-
         if ignore_specials:
             sort_key = get_field("win_rate", ignore_specials)
-
         else:
             sort_key = "wilson_score"
 
@@ -502,7 +524,6 @@ def get_summaries(
     rows = cursor.fetchall()
 
     query_for_count = f"SELECT COUNT(*) FROM ({query.rsplit('ORDER BY', 1)[0]})"
-
     cursor.execute(query_for_count, params[:-2])
     total_count = cursor.fetchone()[0]
 
@@ -520,7 +541,6 @@ def get_summaries(
         ) / (1 + z * z / n)
 
     for row in rows:
-
         total = row["total"]
         wins = row["wins"]
 
@@ -534,6 +554,7 @@ def get_summaries(
         results.append(
             {
                 "season": row["season"],
+                "tag": row["tag"],
                 "attackingTeam": json.loads(row["atk_json"]),
                 "defendingTeam": json.loads(row["def_json"]),
                 "total": total,
@@ -557,39 +578,9 @@ def get_summaries(
     }
 
 
-class DeleteSummaryModel(BaseModel):
-    atk_sig: str
-    def_sig: str
-
-
-@app.post("/api/summaries/delete")
-def delete_summary(payload: DeleteSummaryModel):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-
-        cursor.execute(
-            "DELETE FROM battles WHERE atk_team_sig = ? AND def_team_sig = ?",
-            (payload.atk_sig, payload.def_sig),
-        )
-        deleted_count = cursor.rowcount
-
-        cursor.execute(
-            "DELETE FROM arena_stats WHERE atk_team_sig = ? AND def_team_sig = ?",
-            (payload.atk_sig, payload.def_sig),
-        )
-
-        conn.commit()
-        return {"message": f"Deleted {deleted_count} records"}
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        conn.close()
-
-
 class ManualAddRequest(BaseModel):
     season: int
+    tag: str = ""
     atk_team: List[int]
     def_team: List[int]
     wins: int
@@ -600,14 +591,12 @@ class ManualAddRequest(BaseModel):
 def manual_add(req: ManualAddRequest):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     import time
 
     now = int(time.time())
 
     atk_sig = ",".join(map(str, sorted(req.atk_team)))
     def_sig = ",".join(map(str, sorted(req.def_team)))
-
     atk_json = json.dumps(req.atk_team)
     def_json = json.dumps(req.def_team)
 
@@ -615,24 +604,24 @@ def manual_add(req: ManualAddRequest):
         records_to_add = []
         for _ in range(req.wins):
             records_to_add.append(
-                (req.season, now, 1, atk_sig, def_sig, atk_json, def_json)
+                (req.season, req.tag, now, 1, atk_sig, def_sig, atk_json, def_json)
             )
         for _ in range(req.losses):
             records_to_add.append(
-                (req.season, now, 0, atk_sig, def_sig, atk_json, def_json)
+                (req.season, req.tag, now, 0, atk_sig, def_sig, atk_json, def_json)
             )
 
         if records_to_add:
             cursor.executemany(
                 """
-                INSERT INTO battles (season, timestamp, is_win, atk_team_sig, def_team_sig, atk_team_json, def_team_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO battles (season, tag, timestamp, is_win, atk_team_sig, def_team_sig, atk_team_json, def_team_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 records_to_add,
             )
             conn.commit()
 
-        update_specific_stat(conn, req.atk_team, req.def_team)
+        update_specific_stat(conn, req.atk_team, req.def_team, req.tag)
 
         return {
             "message": f"Added {len(records_to_add)} records. Stats incrementally updated."
@@ -650,7 +639,6 @@ async def upload_json(file: UploadFile = File(...)):
     try:
         content = await file.read()
         data = json.loads(content)
-
         if not isinstance(data, list):
             raise HTTPException(
                 status_code=400, detail="JSON must be a list of records"
@@ -661,11 +649,10 @@ async def upload_json(file: UploadFile = File(...)):
 
         try:
             insert_list = []
-
             for row in data:
-
                 season = row.get("Season", 1)
                 is_win = 1 if row.get("Win") else 0
+                tag = row.get("Tag", "")
 
                 atk_team = row.get("AttackingTeamIds", [])
                 def_team = row.get("DefendingTeamIds", [])
@@ -676,40 +663,44 @@ async def upload_json(file: UploadFile = File(...)):
                 time_str = row.get("Time")
                 if time_str:
                     try:
-
                         dt = datetime.fromisoformat(time_str)
                         timestamp = int(dt.timestamp())
                     except ValueError:
                         timestamp = int(time.time())
-
                 else:
                     timestamp = int(time.time())
 
                 atk_sig = ",".join(map(str, sorted(atk_team)))
                 def_sig = ",".join(map(str, sorted(def_team)))
-
                 atk_json = json.dumps(atk_team)
                 def_json = json.dumps(def_team)
 
                 insert_list.append(
-                    (season, timestamp, is_win, atk_sig, def_sig, atk_json, def_json)
+                    (
+                        season,
+                        tag,
+                        timestamp,
+                        is_win,
+                        atk_sig,
+                        def_sig,
+                        atk_json,
+                        def_json,
+                    )
                 )
 
             if insert_list:
-
                 cursor.executemany(
                     """
                     INSERT INTO battles (
-                        season, timestamp, is_win, 
+                        season, tag, timestamp, is_win, 
                         atk_team_sig, def_team_sig, 
                         atk_team_json, def_team_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     insert_list,
                 )
 
                 conn.commit()
-
                 stats_count = recalculate_all_stats(conn)
 
                 return {
@@ -735,15 +726,14 @@ class CommentRequest(BaseModel):
     atk_sig: str
     def_sig: str
     username: str = "Sensei"
-
     content: str
+    parent_id: Optional[int] = None
 
 
 @app.get("/api/comments")
 def get_comments(atk_sig: str, def_sig: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT * FROM comments 
@@ -754,7 +744,6 @@ def get_comments(atk_sig: str, def_sig: str):
     )
     rows = cursor.fetchall()
     conn.close()
-
     return [dict(row) for row in rows]
 
 
@@ -768,13 +757,36 @@ def add_comment(req: CommentRequest):
         now = int(time.time())
         cursor.execute(
             """
-            INSERT INTO comments (atk_sig, def_sig, username, content, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO comments (atk_sig, def_sig, username, content, parent_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
         """,
-            (req.atk_sig, req.def_sig, req.username, req.content, now),
+            (req.atk_sig, req.def_sig, req.username, req.content, req.parent_id, now),
         )
         conn.commit()
         return {"id": cursor.lastrowid, "message": "Comment added"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@app.post("/api/summaries/delete")
+def delete_summary(payload: DeleteSummaryModel):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "DELETE FROM battles WHERE atk_team_sig = ? AND def_team_sig = ?",
+            (payload.atk_sig, payload.def_sig),
+        )
+        deleted_count = cursor.rowcount
+        cursor.execute(
+            "DELETE FROM arena_stats WHERE atk_team_sig = ? AND def_team_sig = ?",
+            (payload.atk_sig, payload.def_sig),
+        )
+        conn.commit()
+        return {"message": f"Deleted {deleted_count} records"}
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -786,7 +798,9 @@ def add_comment(req: CommentRequest):
 def delete_comment(comment_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM comments WHERE id = ?", (comment_id,))
+    cursor.execute(
+        "DELETE FROM comments WHERE id = ? OR parent_id = ?", (comment_id, comment_id)
+    )
     conn.commit()
     conn.close()
     return {"message": "Deleted"}

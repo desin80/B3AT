@@ -45,7 +45,10 @@
             "losses": "败场数",
             "submit": "添加记录",
             "adding": "添加中...",
-            "success": "已添加 {{count}} 条记录"
+            "success": "已添加 {{count}} 条记录",
+            "tag": "标签",
+            "tag_none": "无",
+            "tag_low_atk": "压攻 (低攻击)"
         }
     },
     "arena": {
@@ -59,6 +62,9 @@
             "winRateAsc": "胜率 (低 → 高)",
             "totalAsc": "总场次 (少 → 多)",
             "newest": "最新录入"
+        },
+        "tags": {
+            "tag_low_atk": "压攻"
         },
         "winRate": "胜率",
         "noData": "暂无数据，请先前往数据管理页导入数据！",
@@ -92,7 +98,9 @@
             "placeholder": "记录翻车点、站位细节或RNG因素...",
             "submit": "发布",
             "no_comments": "暂无笔记",
-            "delete_confirm": "删除这条笔记？"
+            "reply": "回复",
+            "cancel": "取消",
+            "delete_confirm": "删除这条评论及其回复？"
         }
     }
 }

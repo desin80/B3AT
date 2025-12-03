@@ -65,6 +65,7 @@ const SettingsPage = () => {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [selectorCallback, setSelectorCallback] = useState(null);
     const [modalFilterType, setModalFilterType] = useState("all");
+    const [tag, setTag] = useState("");
 
     useEffect(() => {
         api.getAllStudents(i18n.language).then(setStudentList);
@@ -137,6 +138,7 @@ const SettingsPage = () => {
         try {
             await api.manualAddRecord({
                 season: parseInt(season),
+                tag: tag,
                 atk_team: cleanAtk,
                 def_team: cleanDef,
                 wins: parseInt(wins),
@@ -228,6 +230,23 @@ const SettingsPage = () => {
                             onChange={(e) => setSeason(e.target.value)}
                             className="w-24 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                            {t("settings.manual_section.tag")}
+                        </label>
+                        <select
+                            value={tag}
+                            onChange={(e) => setTag(e.target.value)}
+                            className="w-32 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none bg-white text-sm"
+                        >
+                            <option value="">
+                                {t("settings.manual_section.tag_none")}
+                            </option>
+                            <option value="tag_low_atk">
+                                {t("settings.manual_section.tag_low_atk")}
+                            </option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">

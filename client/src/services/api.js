@@ -127,7 +127,7 @@ const api = {
         return await res.json();
     },
 
-    addComment: async (atkSig, defSig, username, content) => {
+    addComment: async (atkSig, defSig, username, content, parentId = null) => {
         const res = await fetch(`${API_BASE}/comments`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -136,6 +136,7 @@ const api = {
                 def_sig: defSig,
                 username: username || "Sensei",
                 content,
+                parent_id: parentId,
             }),
         });
         if (!res.ok) throw new Error("Failed to post comment");
@@ -149,7 +150,7 @@ const api = {
         return await res.json();
     },
     manualAddRecord: async (payload) => {
-        // payload: { season, atk_team, def_team, wins, losses }
+        // payload: { season, tag, atk_team, def_team, wins, losses }
         const res = await fetch(`${API_BASE}/manual_add`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -49,7 +49,10 @@
             "losses": "Losses",
             "submit": "Add Records",
             "adding": "Adding...",
-            "success": "Added {{count}} records"
+            "success": "Added {{count}} records",
+            "tag": "Tag",
+            "tag_none": "None",
+            "tag_low_atk": "Low Atk Bait"
         }
     },
     "arena": {
@@ -63,6 +66,9 @@
             "winRateAsc": "Win Rate (Low → High)",
             "totalAsc": "Total Battles (Low → High)",
             "newest": "Newest First"
+        },
+        "tags": {
+            "tag_low_atk": "Low Atk"
         },
         "winRate": "Win Rate",
         "noData": "No data found. Please import data in Settings!",
@@ -96,7 +102,9 @@
             "placeholder": "Add notes about RNG, positioning, or why it failed...",
             "submit": "Post",
             "no_comments": "No notes yet",
-            "delete_confirm": "Delete this note?"
+            "reply": "Reply",
+            "cancel": "Cancel",
+            "delete_confirm": "Delete this comment and its replies?"
         }
     }
 }

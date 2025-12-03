@@ -1,13 +1,109 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import api from "../services/api";
+
+const CommentItem = ({
+    comment,
+    onDelete,
+    onReply,
+    currentReplyId,
+    onSubmitReply,
+    replyInput,
+    setReplyInput,
+    isLoading,
+}) => {
+    const { t } = useTranslation();
+
+    const formatDate = (ts) => new Date(ts * 1000).toLocaleString();
+
+    const isReply = !!comment.parent_id;
+
+    return (
+        <div
+            className={`relative group ${
+                isReply
+                    ? "ml-8 mt-2 pl-3 border-l-2 border-gray-100"
+                    : "bg-white border border-gray-200 shadow-sm rounded-lg p-3"
+            }`}
+        >
+            <div className="flex justify-between items-baseline mb-1">
+                <span
+                    className={`text-xs font-bold ${
+                        isReply ? "text-gray-600" : "text-sky-700"
+                    }`}
+                >
+                    {comment.username || "Sensei"}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                    {formatDate(comment.created_at)}
+                </span>
+            </div>
+
+            <p className="text-gray-800 text-sm whitespace-pre-wrap break-all pr-6 mb-1">
+                {comment.content}
+            </p>
+
+            <div className="flex items-center gap-3">
+                {!isReply && (
+                    <button
+                        onClick={() => onReply(comment.id)}
+                        className="text-xs text-sky-500 hover:text-sky-700 font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        {t("arena.comments.reply")}
+                    </button>
+                )}
+
+                <button
+                    onClick={() => onDelete(comment.id)}
+                    className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    {t("common.delete")}
+                </button>
+            </div>
+
+            {currentReplyId === comment.id && (
+                <div className="mt-3 p-2 bg-gray-50 rounded-md border border-sky-100 animate-fade-in-up">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
+                            placeholder={t("arena.comments.placeholder")}
+                            value={replyInput}
+                            onChange={(e) => setReplyInput(e.target.value)}
+                            autoFocus
+                            disabled={isLoading}
+                            onKeyDown={(e) =>
+                                e.key === "Enter" && onSubmitReply(comment.id)
+                            }
+                        />
+                        <button
+                            onClick={() => onSubmitReply(comment.id)}
+                            disabled={isLoading || !replyInput.trim()}
+                            className="bg-sky-500 text-white px-3 py-1 rounded text-xs"
+                        >
+                            {t("arena.comments.submit")}
+                        </button>
+                        <button
+                            onClick={() => onReply(null)} // Cancel
+                            className="text-gray-500 hover:text-gray-700 px-2 py-1 text-xs"
+                        >
+                            {t("arena.comments.cancel")}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const ArenaCommentSection = ({ atkSig, defSig }) => {
     const { t } = useTranslation();
     const [comments, setComments] = useState([]);
-
-    const [inputVal, setInputVal] = useState("");
+    const [mainInput, setMainInput] = useState("");
     const [username, setUsername] = useState("");
+
+    const [replyingTo, setReplyingTo] = useState(null);
+    const [replyInput, setReplyInput] = useState("");
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -26,22 +122,40 @@ const ArenaCommentSection = ({ atkSig, defSig }) => {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!inputVal.trim()) return;
+    const structuredComments = useMemo(() => {
+        const roots = [];
+        const repliesMap = {};
 
+        comments.forEach((c) => {
+            if (c.parent_id) {
+                if (!repliesMap[c.parent_id]) repliesMap[c.parent_id] = [];
+                repliesMap[c.parent_id].push(c);
+            } else {
+                roots.push(c);
+            }
+        });
+
+        return { roots, repliesMap };
+    }, [comments]);
+
+    const handlePost = async (content, parentId = null) => {
+        if (!content.trim()) return;
         setIsLoading(true);
         try {
-            await api.addComment(atkSig, defSig, username, inputVal);
-
-            if (username.trim()) {
+            await api.addComment(atkSig, defSig, username, content, parentId);
+            if (username.trim())
                 localStorage.setItem("kani_username", username);
+
+            if (parentId) {
+                setReplyInput("");
+                setReplyingTo(null);
+            } else {
+                setMainInput("");
             }
 
-            setInputVal("");
             loadComments();
         } catch (e) {
-            alert("Error: " + e.message);
+            alert(e.message);
         } finally {
             setIsLoading(false);
         }
@@ -51,14 +165,12 @@ const ArenaCommentSection = ({ atkSig, defSig }) => {
         if (!window.confirm(t("arena.comments.delete_confirm"))) return;
         try {
             await api.deleteComment(id);
-            setComments(comments.filter((c) => c.id !== id));
+            setComments((prev) =>
+                prev.filter((c) => c.id !== id && c.parent_id !== id)
+            );
         } catch (e) {
             console.error(e);
         }
-    };
-
-    const formatDate = (ts) => {
-        return new Date(ts * 1000).toLocaleString();
     };
 
     return (
@@ -80,7 +192,7 @@ const ArenaCommentSection = ({ atkSig, defSig }) => {
                 {t("arena.comments.title")}
             </h4>
 
-            <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-6">
                 <input
                     type="text"
                     className="w-24 md:w-32 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-sky-500 outline-none"
@@ -90,67 +202,62 @@ const ArenaCommentSection = ({ atkSig, defSig }) => {
                     disabled={isLoading}
                     maxLength={12}
                 />
-
                 <input
                     type="text"
                     className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-sky-500 outline-none"
                     placeholder={t("arena.comments.placeholder")}
-                    value={inputVal}
-                    onChange={(e) => setInputVal(e.target.value)}
+                    value={mainInput}
+                    onChange={(e) => setMainInput(e.target.value)}
+                    onKeyDown={(e) =>
+                        e.key === "Enter" && handlePost(mainInput)
+                    }
                     disabled={isLoading}
                 />
-
                 <button
-                    type="submit"
-                    disabled={isLoading || !inputVal.trim()}
+                    onClick={() => handlePost(mainInput)}
+                    disabled={isLoading || !mainInput.trim()}
                     className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
                 >
                     {t("arena.comments.submit")}
                 </button>
-            </form>
+            </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {comments.length === 0 ? (
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                {structuredComments.roots.length === 0 ? (
                     <p className="text-gray-400 text-xs italic text-center py-2">
                         {t("arena.comments.no_comments")}
                     </p>
                 ) : (
-                    comments.map((c) => (
-                        <div
-                            key={c.id}
-                            className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm relative group"
-                        >
-                            <div className="flex justify-between items-baseline mb-1">
-                                <span className="text-xs font-bold text-sky-700">
-                                    {c.username || "Sensei"}
-                                </span>
-                                <span className="text-[10px] text-gray-400">
-                                    {formatDate(c.created_at)}
-                                </span>
-                            </div>
-                            <p className="text-gray-800 text-sm whitespace-pre-wrap break-all pr-6">
-                                {c.content}
-                            </p>
+                    structuredComments.roots.map((root) => (
+                        <div key={root.id}>
+                            <CommentItem
+                                comment={root}
+                                onDelete={handleDelete}
+                                onReply={setReplyingTo}
+                                currentReplyId={replyingTo}
+                                onSubmitReply={(parentId) =>
+                                    handlePost(replyInput, parentId)
+                                }
+                                replyInput={replyInput}
+                                setReplyInput={setReplyInput}
+                                isLoading={isLoading}
+                            />
 
-                            <button
-                                onClick={() => handleDelete(c.id)}
-                                className="absolute bottom-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title={t("common.delete")}
-                            >
-                                <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                    />
-                                </svg>
-                            </button>
+                            {structuredComments.repliesMap[root.id] && (
+                                <div className="space-y-2">
+                                    {structuredComments.repliesMap[root.id].map(
+                                        (reply) => (
+                                            <CommentItem
+                                                key={reply.id}
+                                                comment={reply}
+                                                onDelete={handleDelete}
+                                                onReply={() => {}}
+                                                currentReplyId={null}
+                                            />
+                                        )
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ))
                 )}
