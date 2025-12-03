@@ -1,0 +1,123 @@
+.arena-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+
+    padding: 0; 
+
+    min-width: max-content;
+
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px) saturate(150%);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+
+    border: 1px solid rgba(229, 231, 235, 0.8); 
+    border-radius: 0.85rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+
+}
+
+.arena-card > div:first-child {
+    width: 100%;
+}
+
+.team-display-container {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; 
+}
+
+.team-avatars {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.arena-card .icon-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.arena-card .icon-display img {
+    height: 2.5rem;
+    width: auto;
+    margin: 0.5rem;
+}
+
+.arena-card .vs-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    margin: 0 0.5rem;
+}
+
+.arena-card .vs-icon img {
+    height: 1.5rem;
+    width: auto;
+}
+
+.summary-stats {
+    margin-left: auto;
+
+    padding-left: 3rem; 
+    min-width: 7rem;
+    text-align: right;
+    font-size: 1rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.summary-stats p {
+    margin: 0;
+    line-height: 1.4; 
+    font-size: 1rem;
+}
+
+.rs-char-card {
+    position: relative;
+    width: 4rem;
+    aspect-ratio: 1 / 1;
+    cursor: pointer;
+    transition: transform 0.2s ease-out;
+    transform: translateY(0.2rem);
+    flex-shrink: 0;
+}
+
+.rs-char-card:hover {
+    transform: translateY(-4px);
+    z-index: 10;
+}
+
+.rs-char-card .background-plate {
+    position: absolute;
+    inset: 0;
+    background-size: 100% 100%;
+    transition: filter 0.2s ease-out;
+    aspect-ratio: 1.2 / 1;
+}
+
+.rs-char-card:hover .background-plate {
+    filter: brightness(1.1);
+}
+
+.rs-char-card .portrait-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-51%, -59%);
+    width: 73%;
+    height: 75%;
+    object-fit: contain;
+}
+
+.arena-card.selected-highlight {
+    border-color: #38bdf8;
+    box-shadow: 0 0 16px 4px rgba(56, 189, 248, 0.5);
+    transform: translateY(-2px); 
+    z-index: 10; 
+}

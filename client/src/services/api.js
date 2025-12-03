@@ -1,0 +1,163 @@
+const API_BASE = "http://localhost:8000/api";
+
+const api = {
+    checkHealth: async () => {
+        try {
+            const res = await fetch("http://localhost:8000/");
+            return res.ok;
+        } catch (e) {
+            console.warn("Backend not reachable", e);
+            return false;
+        }
+    },
+
+    getBattles: async (page = 1, filters = {}) => {
+        const params = new URLSearchParams();
+        params.append("page", page);
+        params.append("limit", 20);
+
+        if (filters.season) params.append("season", filters.season);
+        if (filters.unit_id) params.append("unit_id", filters.unit_id);
+
+        try {
+            const res = await fetch(`${API_BASE}/battles?${params.toString()}`);
+            if (!res.ok) throw new Error("Network response was not ok");
+            return await res.json();
+        } catch (error) {
+            console.error("Failed to fetch battles:", error);
+            return [];
+        }
+    },
+
+    uploadData: async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch(`${API_BASE}/upload`, {
+            method: "POST",
+            body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.detail || "Upload failed");
+        }
+        return data;
+    },
+    getAllStudents: async (lang = "en") => {
+        try {
+            const dbLang = lang.startsWith("zh") ? "zh" : "en";
+
+            const res = await fetch(
+                `https://schaledb.com/data/${dbLang}/students.json`
+            );
+            if (!res.ok) throw new Error("Failed to load student data");
+            const data = await res.json();
+
+            return Object.values(data);
+        } catch (e) {
+            console.error(e);
+            return [];
+        }
+    },
+
+    getArenaSummaries: async (
+        page = 1,
+        filters = {},
+        limit = 20,
+        sort = "default",
+        ignoreSpecials = false
+    ) => {
+        const params = new URLSearchParams({ page, limit, sort });
+
+        if (ignoreSpecials) params.append("ignore_specials", "true");
+
+        if (filters.season) params.append("season", filters.season);
+
+        if (filters.minWinRate)
+            params.append("min_win_rate", filters.minWinRate);
+        if (filters.maxWinRate)
+            params.append("max_win_rate", filters.maxWinRate);
+        if (filters.minBattles)
+            params.append("min_battles", filters.minBattles);
+
+        if (filters.atkContains && filters.atkContains.length > 0)
+            params.append("atk_contains", filters.atkContains.join(","));
+        if (filters.defContains && filters.defContains.length > 0)
+            params.append("def_contains", filters.defContains.join(","));
+
+        if (filters.atkSlots && Object.keys(filters.atkSlots).length > 0) {
+            const slots = Object.entries(filters.atkSlots)
+                .map(([idx, id]) => `${idx}:${id}`)
+                .join(",");
+            params.append("atk_slots", slots);
+        }
+        if (filters.defSlots && Object.keys(filters.defSlots).length > 0) {
+            const slots = Object.entries(filters.defSlots)
+                .map(([idx, id]) => `${idx}:${id}`)
+                .join(",");
+            params.append("def_slots", slots);
+        }
+
+        const res = await fetch(`${API_BASE}/summaries?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch summaries");
+        return await res.json();
+    },
+    deleteArenaSummary: async (atkSig, defSig) => {
+        const res = await fetch(`${API_BASE}/summaries/delete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ atk_sig: atkSig, def_sig: defSig }),
+        });
+        if (!res.ok) throw new Error("Delete failed");
+        return await res.json();
+    },
+
+    getSeasons: async () => {
+        return [1, 2, 3, 4, 5, 6, 7];
+    },
+    getComments: async (atkSig, defSig) => {
+        const params = new URLSearchParams({
+            atk_sig: atkSig,
+            def_sig: defSig,
+        });
+        const res = await fetch(`${API_BASE}/comments?${params}`);
+        if (!res.ok) throw new Error("Failed to load comments");
+        return await res.json();
+    },
+
+    addComment: async (atkSig, defSig, username, content) => {
+        const res = await fetch(`${API_BASE}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                atk_sig: atkSig,
+                def_sig: defSig,
+                username: username || "Sensei",
+                content,
+            }),
+        });
+        if (!res.ok) throw new Error("Failed to post comment");
+        return await res.json();
+    },
+    deleteComment: async (id) => {
+        const res = await fetch(`${API_BASE}/comments/${id}`, {
+            method: "DELETE",
+        });
+        if (!res.ok) throw new Error("Failed to delete");
+        return await res.json();
+    },
+    manualAddRecord: async (payload) => {
+        // payload: { season, atk_team, def_team, wins, losses }
+        const res = await fetch(`${API_BASE}/manual_add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("Failed to add records");
+        return await res.json();
+    },
+};
+
+export default api;

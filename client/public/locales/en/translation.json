@@ -1,0 +1,102 @@
+{
+    "nav": {
+        "home": "Home",
+        "arena": "Arena",
+        "settings": "Settings"
+    },
+    "home": {
+        "character": {
+            "title": "Students",
+            "description": "Character Database"
+        },
+        "arena": {
+            "title": "Tactical Challenge",
+            "description": "PVP Arena Calculator"
+        },
+        "settings": {
+            "title": "Data Management",
+            "description": "Import and Manage Data"
+        }
+    },
+    "common": {
+        "all": "All",
+        "loading": "Loading...",
+        "prev": "Prev",
+        "next": "Next",
+        "pageInfo": "Page {{page}} of {{total}}",
+        "delete": "Delete",
+        "confirmDelete": "Are you sure you want to delete this?",
+        "go": "Go",
+        "page": "Page"
+    },
+    "settings": {
+        "title": "Data Management",
+        "description": "Import and Manage Data",
+        "import_section": {
+            "title": "Import Data",
+            "desc": "Upload a JSON file to batch import history. This will refresh the stats cache.",
+            "button": "Select File",
+            "uploading": "Uploading...",
+            "success": "Import Successful!"
+        },
+        "manual_section": {
+            "title": "Manual Entry",
+            "desc": "Manually add test results or missing records.",
+            "season": "Season",
+            "atk": "Attacking Team",
+            "def": "Defending Team",
+            "wins": "Wins",
+            "losses": "Losses",
+            "submit": "Add Records",
+            "adding": "Adding...",
+            "success": "Added {{count}} records"
+        }
+    },
+    "arena": {
+        "title": "Battle Analysis",
+        "season": "Season",
+        "sortBy": "Sort By",
+        "sort": {
+            "default": "Default (Total Battles)",
+            "composite": "Smart Sort (Wilson Score)",
+            "winRateDesc": "Win Rate (High → Low)",
+            "winRateAsc": "Win Rate (Low → High)",
+            "totalAsc": "Total Battles (Low → High)",
+            "newest": "Newest First"
+        },
+        "winRate": "Win Rate",
+        "noData": "No data found. Please import data in Settings!",
+        "recordStat": "{{wins}}W / {{losses}}L",
+        "stats": {
+            "label_sample": "Sample",
+            "label_posterior": "Posterior",
+            "label_wilson": "Wilson",
+            "low_sample_warning": "Low Sample"
+        },
+        "stats_desc": {
+            "sample": "Total battles recorded for this matchup. Higher sample size means more reliable data.",
+            "posterior": "Bayesian smoothed win rate. It prevents misleading stats like '1 win out of 1 battle = 100%', providing a more realistic estimate.",
+            "wilson": "Wilson Score Interval (Lower Bound). Represents 'at least this win rate' with 95% confidence. "
+        },
+        "filter": {
+            "filter": "filter",
+            "min_win_rate": "Min Win Rate (%)",
+            "min_battles": "Min Battles",
+            "reset": "Reset Filters",
+            "atk_team": "Attacking Team",
+            "def_team": "Defending Team",
+            "search_placeholder": "Search by Name or ID...",
+            "select_student": "Select Student",
+            "no_result": "No students found",
+            "ignore_specials": "Merge Specials Order"
+        },
+        "comments": {
+            "title": "Tactical Notes",
+            "placeholder_name": "Name",
+            "placeholder": "Add notes about RNG, positioning, or why it failed...",
+            "submit": "Post",
+            "no_comments": "No notes yet",
+            "delete_confirm": "Delete this note?"
+        }
+    }
+}

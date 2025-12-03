@@ -1,0 +1,98 @@
+{
+    "nav": {
+        "home": "首页",
+        "arena": "竞技场",
+        "settings": "设置"
+    },
+    "home": {
+        "character": {
+            "title": "学生图鉴",
+            "description": "查看学生详细数据"
+        },
+        "arena": {
+            "title": "战术对抗",
+            "description": "竞技场作业查询"
+        }
+    },
+    "common": {
+        "all": "全部",
+        "loading": "加载中...",
+        "prev": "上一页",
+        "next": "下一页",
+        "pageInfo": "第 {{page}} 页 / 共 {{total}} 页",
+        "delete": "删除",
+        "confirmDelete": "确定要删除这条记录吗？",
+        "go": "跳转",
+        "page": "页码"
+    },
+    "settings": {
+        "title": "数据管理",
+        "description": "导入和管理数据",
+        "import_section": {
+            "title": "导入数据",
+            "desc": "上传 JSON 文件以批量导入历史战绩。这将覆盖当前的统计缓存。",
+            "button": "选择文件",
+            "uploading": "上传处理中...",
+            "success": "导入成功！"
+        },
+        "manual_section": {
+            "title": "手动录入",
+            "desc": "手动添加特定阵容的测试结果或缺失数据。",
+            "season": "赛季",
+            "atk": "进攻方",
+            "def": "防守方",
+            "wins": "胜场数",
+            "losses": "败场数",
+            "submit": "添加记录",
+            "adding": "添加中...",
+            "success": "已添加 {{count}} 条记录"
+        }
+    },
+    "arena": {
+        "title": "战局分析列表",
+        "season": "赛季",
+        "sortBy": "排序",
+        "sort": {
+            "default": "默认 (总场次)",
+            "composite": "综合推荐 (Wilson置信度)",
+            "winRateDesc": "胜率 (高 → 低)",
+            "winRateAsc": "胜率 (低 → 高)",
+            "totalAsc": "总场次 (少 → 多)",
+            "newest": "最新录入"
+        },
+        "winRate": "胜率",
+        "noData": "暂无数据，请先前往数据管理页导入数据！",
+        "recordStat": "{{wins}}胜 / {{losses}}负",
+        "stats": {
+            "label_sample": "样本量",
+            "label_posterior": "后验均值",
+            "label_wilson": "置信下界",
+            "low_sample_warning": "样本不足"
+        },
+        "stats_desc": {
+            "sample": "该对局组合被记录的总场次。样本越大，统计结果越可信。",
+            "posterior": "基于贝叶斯平滑处理后的胜率。它可以防止“1战1胜=100%胜率”这种误导性数据，更真实地反映实力。",
+            "wilson": "Wilson 得分区间下界（95%置信度）。代表“在最坏情况下，该队伍的胜率至少有多少”。"
+        },
+        "filter": {
+            "filter": "筛选",
+            "min_win_rate": "最低胜率 (%)",
+            "min_battles": "最少场次",
+            "reset": "重置筛选",
+            "atk_team": "进攻队伍",
+            "def_team": "防守队伍",
+            "search_placeholder": "搜索学生名字或ID...",
+            "select_student": "选择学生",
+            "no_result": "未找到相关学生",
+            "ignore_specials": "忽略后排顺序"
+        },
+        "comments": {
+            "title": "战术笔记",
+            "placeholder_name": "昵称",
+            "placeholder": "记录翻车点、站位细节或RNG因素...",
+            "submit": "发布",
+            "no_comments": "暂无笔记",
+            "delete_confirm": "删除这条笔记？"
+        }
+    }
+}

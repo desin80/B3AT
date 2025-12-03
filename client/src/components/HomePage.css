@@ -1,0 +1,77 @@
+.shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr); 
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 80rem;
+    margin-top: 2rem;
+}
+
+@media (min-width: 640px) {
+    .shortcut-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .shortcut-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.shortcut-button {
+    background-color: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px) saturate(150%);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.shortcut-button:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.shortcut-button-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    height: 100%;
+}
+
+.shortcut-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background-color: rgba(229, 231, 235, 0.8);
+}
+
+.shortcut-text-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.shortcut-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.shortcut-description {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #4b5563;
+    margin: 0.25rem 0 0 0;
+    line-height: 1.5;
+}

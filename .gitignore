@@ -1,0 +1,38 @@
+arena.db
+##############################
+# Root-level ignores
+##############################
+.env
+.env.*
+.DS_Store
+Thumbs.db
+*.log
+
+##############################
+# Client (React + Vite + Tailwind)
+##############################
+client/node_modules/
+client/dist/
+client/.vite/
+
+# Local config (如果你不想提交则保留，否则可删)
+client/*.local
+
+##############################
+# Server (Python + FastAPI)
+##############################
+server/venv/
+server/.venv/
+server/__pycache__/
+server/*.py[cod]
+server/*.egg-info/
+server/records.json
+server/mock.py
+server/migrate_legacy.py
+server/rebuild_stats.py
+
+##############################
+# IDE / Editors
+##############################
+.vscode/
+
