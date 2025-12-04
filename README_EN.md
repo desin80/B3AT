@@ -83,4 +83,44 @@ Open your browser and visit `http://localhost:5173` to start using.
 
 ---
 
+## JSON Data Format
+
+Files for batch upload must be in **JSON Array** format (even if containing only a single record, it must be wrapped in `[]`).
+
+```json
+[
+    {
+        "Server": "global",
+        "Season": 9,
+        "Tag": "Top100",
+        "Win": true,
+        "AttackingTeamIds": [10017, 10025, 20015, 20022, 10055, 20011],
+        "DefendingTeamIds": [10010, 10033, 20008, 20009, 13008, 20025],
+        "Time": "2023-10-27T14:30:00"
+    },
+    {
+        "Server": "japan",
+        "Season": 10,
+        "Win": false,
+        "AttackingTeamIds": [10017, 10025, 20015, 20022],
+        "DefendingTeamIds": [13008, 10055, 20011, 20025],
+        "Time": "2023-10-28T09:15:00"
+    }
+]
+```
+
+### Field Details
+
+| Field                | Type         | Description                                                        |
+| :------------------- | :----------- | :----------------------------------------------------------------- |
+| **Win**              | Boolean      | `true` indicates a win for the attacker, `false` indicates a loss. |
+| **AttackingTeamIds** | Array\<Int\> | List of Student IDs for the attacking team.                        |
+| **DefendingTeamIds** | Array\<Int\> | List of Student IDs for the defending team.                        |
+| **Server**           | String       | Server name (e.g., `global`, `japan`). Defaults to `global`.       |
+| **Season**           | Integer      | Arena season number. Defaults to `9`.                              |
+| **Tag**              | String       | Custom tag (e.g., strategy notes, rank).                           |
+| **Time**             | String       | Battle time (ISO 8601 format). Defaults to upload time if omitted. |
+
+---
+
 > **Credits**: Student data and avatar resources are from [SchaleDB](https://schaledb.com/).

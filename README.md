@@ -33,7 +33,7 @@
 
 ### 4. 数据导入 (Data Management)
 
--   **批量导入**: 支持 JSON 格式的历史战绩批量导入。
+-   **批量导入**: 支持 JSON 格式的历史战绩批量导入，示例见末尾。
 -   **手动录入**: 提供手动录入面板，您可以预设攻守阵容，胜负场次。
     ![Manual Entry Screenshot](./screenshots/settings_manual.png)
 
@@ -80,6 +80,46 @@ npm run dev
 ```
 
 打开浏览器访问 `http://localhost:5173` 即可开始使用
+
+---
+
+## JSON 数据示例 (Data Format)
+
+批量上传的文件必须为 **JSON 数组** 格式（即使只有一条数据，也需要包裹在 `[]` 中）。
+
+```json
+[
+    {
+        "Server": "global",
+        "Season": 9,
+        "Tag": "Top100",
+        "Win": true,
+        "AttackingTeamIds": [10017, 10025, 20015, 20022, 10055, 20011],
+        "DefendingTeamIds": [10010, 10033, 20008, 20009, 13008, 20025],
+        "Time": "2023-10-27T14:30:00"
+    },
+    {
+        "Server": "japan",
+        "Season": 10,
+        "Win": false,
+        "AttackingTeamIds": [10017, 10025, 20015, 20022],
+        "DefendingTeamIds": [13008, 10055, 20011, 20025],
+        "Time": "2023-10-28T09:15:00"
+    }
+]
+```
+
+### 字段详细说明
+
+| 字段名 (Field)       | 类型 (Type)  | 说明 (Description)                             |
+| :------------------- | :----------- | :--------------------------------------------- |
+| **Win**              | Boolean      | `true` 为进攻胜利，`false` 为失败              |
+| **AttackingTeamIds** | Array\<Int\> | 进攻方学生 ID 列表                             |
+| **DefendingTeamIds** | Array\<Int\> | 防守方学生 ID 列表                             |
+| **Server**           | String       | 服务器 (如 `global`, `japan`)，默认为 `global` |
+| **Season**           | Integer      | 赛季编号，默认为 `9`                           |
+| **Tag**              | String       | 自定义标签 (如压攻)                            |
+| **Time**             | String       | 战斗时间 (ISO 8601 格式)，不填则默认为上传时间 |
 
 ---
 
