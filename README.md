@@ -92,7 +92,7 @@ npm run dev
     {
         "Server": "global",
         "Season": 9,
-        "Tag": "Top100",
+        "Tag": "tag_low_atk",
         "Win": true,
         "AttackingTeamIds": [10017, 10025, 20015, 20022, 10055, 20011],
         "DefendingTeamIds": [10010, 10033, 20008, 20009, 13008, 20025],
