@@ -66,6 +66,7 @@ const SettingsPage = () => {
     const [selectorCallback, setSelectorCallback] = useState(null);
     const [modalFilterType, setModalFilterType] = useState("all");
     const [tag, setTag] = useState("");
+    const [server, setServer] = useState("global");
 
     useEffect(() => {
         api.getAllStudents(i18n.language).then(setStudentList);
@@ -169,6 +170,7 @@ const SettingsPage = () => {
 
         try {
             await api.manualAddRecord({
+                server: server,
                 season: parseInt(season),
                 tag: tag,
                 atk_team: cleanAtk,
@@ -261,6 +263,26 @@ const SettingsPage = () => {
                             onChange={(e) => setSeason(e.target.value)}
                             className="w-24 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                            {t("settings.manual_section.server")}
+                        </label>
+                        <select
+                            value={server}
+                            onChange={(e) => setServer(e.target.value)}
+                            className="w-24 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none bg-white text-sm"
+                        >
+                            <option value="global">
+                                {t("settings.manual_section.server_global")}
+                            </option>
+                            <option value="cn">
+                                {t("settings.manual_section.server_cn")}
+                            </option>
+                            <option value="jp">
+                                {t("settings.manual_section.server_jp")}
+                            </option>
+                        </select>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">

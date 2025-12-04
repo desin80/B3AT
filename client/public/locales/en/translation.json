@@ -58,12 +58,26 @@
             "error_max_count": "Max {{max}} records per entry",
             "error_season": "Season must be positive",
             "error_negative": "Counts cannot be negative",
-            "error_zero": "Must add at least one win or loss"
+            "error_zero": "Must add at least one win or loss",
+            "server": "Server",
+            "server_global": "Global",
+            "server_cn": "China",
+            "server_jp": "Japan"
         }
     },
     "arena": {
         "title": "Battle Analysis",
+        "all_seasons": "All",
         "season": "Season",
+        "server": "Server",
+        "servers": {
+            "global": "Global",
+            "cn": "CN",
+            "jp": "JP"
+        },
+        "server_global": "Global",
+        "server_cn": "China",
+        "server_jp": "Japan",
         "sortBy": "Sort By",
         "sort": {
             "default": "Default (Total Battles)",

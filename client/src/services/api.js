@@ -16,8 +16,10 @@ const api = {
         params.append("page", page);
         params.append("limit", 20);
 
+        if (filters.server) params.append("server", filters.server);
         if (filters.season) params.append("season", filters.season);
         if (filters.unit_id) params.append("unit_id", filters.unit_id);
+        if (filters.tag) params.append("tag", filters.tag);
 
         try {
             const res = await fetch(`${API_BASE}/battles?${params.toString()}`);
@@ -67,9 +69,10 @@ const api = {
         filters = {},
         limit = 20,
         sort = "default",
-        ignoreSpecials = false
+        ignoreSpecials = false,
+        server = "global"
     ) => {
-        const params = new URLSearchParams({ page, limit, sort });
+        const params = new URLSearchParams({ page, limit, sort, server });
 
         if (ignoreSpecials) params.append("ignore_specials", "true");
 
@@ -104,7 +107,7 @@ const api = {
         if (!res.ok) throw new Error("Failed to fetch summaries");
         return await res.json();
     },
-    deleteArenaSummary: async (atkSig, defSig) => {
+    deleteArenaSummary: async (atkSig, defSig, server = "global") => {
         const res = await fetch(`${API_BASE}/summaries/delete`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -114,10 +117,22 @@ const api = {
         return await res.json();
     },
 
-    getSeasons: async () => {
-        return [1, 2, 3, 4, 5, 6, 7];
+    getSeasons: async (server = null) => {
+        try {
+            let url = `${API_BASE}/seasons`;
+            if (server && server !== "all") {
+                url += `?server=${server}`;
+            }
+
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Failed to fetch seasons");
+            return await res.json();
+        } catch (e) {
+            console.warn("Error fetching seasons, using fallback", e);
+            return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        }
     },
-    getComments: async (atkSig, defSig) => {
+    getComments: async (atkSig, defSig, server = "global") => {
         const params = new URLSearchParams({
             atk_sig: atkSig,
             def_sig: defSig,
@@ -127,11 +142,19 @@ const api = {
         return await res.json();
     },
 
-    addComment: async (atkSig, defSig, username, content, parentId = null) => {
+    addComment: async (
+        atkSig,
+        defSig,
+        server,
+        username,
+        content,
+        parentId = null
+    ) => {
         const res = await fetch(`${API_BASE}/comments`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                server: server || "global",
                 atk_sig: atkSig,
                 def_sig: defSig,
                 username: username || "Sensei",

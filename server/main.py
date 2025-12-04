@@ -75,6 +75,7 @@ def recalculate_all_stats(conn):
     cursor.execute(
         """
         SELECT 
+            server,
             season, 
             tag, 
             atk_team_json, 
@@ -83,14 +84,14 @@ def recalculate_all_stats(conn):
             SUM(is_win), 
             MAX(timestamp)
         FROM battles
-        GROUP BY season, tag, atk_team_json, def_team_json
+        GROUP BY server, season, tag, atk_team_json, def_team_json
     """
     )
     rows = cursor.fetchall()
 
     insert_list = []
     for row in rows:
-        season, tag, atk_json, def_json, total, wins, last_seen = row
+        server, season, tag, atk_json, def_json, total, wins, last_seen = row
 
         try:
             atk_team = json.loads(atk_json)
@@ -106,6 +107,7 @@ def recalculate_all_stats(conn):
 
         insert_list.append(
             (
+                server,
                 season,
                 tag,
                 atk_strict,
@@ -125,6 +127,7 @@ def recalculate_all_stats(conn):
     cursor.executemany(
         """
     INSERT INTO arena_stats (
+        server,
         season, 
         tag,
         atk_strict_sig, def_strict_sig, 
@@ -132,7 +135,7 @@ def recalculate_all_stats(conn):
         atk_team_json, def_team_json, 
         total_battles, total_wins, last_seen, 
         wilson_score, avg_win_rate
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         insert_list,
     )
@@ -141,7 +144,7 @@ def recalculate_all_stats(conn):
     return len(insert_list)
 
 
-def update_specific_stat(conn, atk_team_list, def_team_list, tag=""):
+def update_specific_stat(conn, server, atk_team_list, def_team_list, tag=""):
     cursor = conn.cursor()
 
     atk_strict, atk_smart = generate_signatures(atk_team_list)
@@ -161,12 +164,13 @@ def update_specific_stat(conn, atk_team_list, def_team_list, tag=""):
             SUM(is_win) as wins, 
             MAX(timestamp) as last_seen
         FROM battles
-        WHERE atk_team_sig = ? AND def_team_sig = ? 
+        WHERE server = ?
+          AND atk_team_sig = ? AND def_team_sig = ? 
           AND atk_team_json = ? AND def_team_json = ?
           AND tag = ? 
         GROUP BY season
     """,
-        (atk_sig_fast, def_sig_fast, atk_json, def_json, tag),
+        (server, atk_sig_fast, def_sig_fast, atk_json, def_json, tag),
     )
 
     rows = cursor.fetchall()
@@ -186,6 +190,7 @@ def update_specific_stat(conn, atk_team_list, def_team_list, tag=""):
         cursor.execute(
             """
             INSERT OR REPLACE INTO arena_stats (
+                server,
                 season, 
                 tag,
                 atk_strict_sig, def_strict_sig, 
@@ -193,9 +198,10 @@ def update_specific_stat(conn, atk_team_list, def_team_list, tag=""):
                 atk_team_json, def_team_json, 
                 total_battles, total_wins, last_seen, 
                 wilson_score, avg_win_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
+                server,
                 season,
                 tag,
                 atk_strict,
@@ -225,6 +231,7 @@ def init_db():
         """
     CREATE TABLE IF NOT EXISTS battles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server TEXT NOT NULL DEFAULT 'global',
         season INTEGER NOT NULL,
         tag TEXT DEFAULT '', 
         timestamp INTEGER NOT NULL,
@@ -235,6 +242,7 @@ def init_db():
         def_team_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_battles_season ON battles(season);
+    CREATE INDEX IF NOT EXISTS idx_battles_server ON battles(server);
 
     CREATE TABLE IF NOT EXISTS battle_units (
         unit_id INTEGER NOT NULL,
@@ -250,6 +258,7 @@ def init_db():
     cursor.executescript(
         """
     CREATE TABLE IF NOT EXISTS arena_stats (
+        server TEXT NOT NULL DEFAULT 'global',
         season INTEGER,
         tag TEXT DEFAULT '',
 
@@ -268,13 +277,13 @@ def init_db():
         wilson_score REAL, 
         avg_win_rate REAL,
 
-        PRIMARY KEY (season, tag, atk_strict_sig, def_strict_sig)
+        PRIMARY KEY (server, season, tag, atk_strict_sig, def_strict_sig)
     );
 
     CREATE INDEX IF NOT EXISTS idx_stats_season ON arena_stats(season);
     CREATE INDEX IF NOT EXISTS idx_stats_total ON arena_stats(total_battles);
     CREATE INDEX IF NOT EXISTS idx_wilson ON arena_stats(wilson_score);
-    CREATE INDEX IF NOT EXISTS idx_smart_sig ON arena_stats(season, atk_smart_sig, def_smart_sig);
+    CREATE INDEX IF NOT EXISTS idx_smart_sig ON arena_stats(server,season, atk_smart_sig, def_smart_sig);
     """
     )
 
@@ -282,6 +291,7 @@ def init_db():
         """
     CREATE TABLE IF NOT EXISTS comments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server TEXT NOT NULL DEFAULT 'global',
         atk_sig TEXT NOT NULL,
         def_sig TEXT NOT NULL,
         username TEXT,
@@ -289,7 +299,7 @@ def init_db():
         parent_id INTEGER DEFAULT NULL,
         created_at INTEGER NOT NULL
     );
-    CREATE INDEX IF NOT EXISTS idx_comments_sigs ON comments(atk_sig, def_sig);
+    CREATE INDEX IF NOT EXISTS idx_comments_sigs ON comments(server, atk_sig, def_sig);
     CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
     """
     )
@@ -321,6 +331,7 @@ class BattleRecord(BaseModel):
 
 
 class DeleteSummaryModel(BaseModel):
+    server: str = "global"
     atk_sig: str
     def_sig: str
 
@@ -334,6 +345,7 @@ def read_root():
 def get_battles(
     page: int = 1,
     limit: int = 20,
+    server: str = "global",
     season: Optional[int] = None,
     unit_id: Optional[int] = None,
     tag: Optional[str] = None,
@@ -343,7 +355,11 @@ def get_battles(
     offset = (page - 1) * limit
 
     query = "SELECT * FROM battles WHERE 1=1"
-    params = []
+    params = [server]
+
+    if server != "all":
+        query += " AND server = ?"
+        params.append(server)
 
     if season:
         query += " AND season = ?"
@@ -370,8 +386,9 @@ def get_battles(
         results.append(
             {
                 "id": row["id"],
+                "server": row["server"],
                 "season": row["season"],
-                "tag": row["tag"],  # 返回 tag
+                "tag": row["tag"],
                 "timestamp": row["timestamp"],
                 "win": bool(row["is_win"]),
                 "attackteam": json.loads(row["atk_team_json"]),
@@ -383,10 +400,29 @@ def get_battles(
     return results
 
 
+@app.get("/api/seasons")
+def get_seasons(server: Optional[str] = None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if server and server != "all":
+        cursor.execute(
+            "SELECT DISTINCT season FROM battles WHERE server = ? ORDER BY season DESC",
+            (server,),
+        )
+    else:
+        cursor.execute("SELECT DISTINCT season FROM battles ORDER BY season DESC")
+
+    rows = cursor.fetchall()
+    conn.close()
+    seasons = [row[0] for row in rows]
+    return seasons if seasons else [1]
+
+
 @app.get("/api/summaries")
 def get_summaries(
     page: int = 1,
     limit: int = 20,
+    server: str = "global",
     season: Optional[int] = None,
     sort: str = "default",
     min_win_rate: Optional[float] = None,
@@ -404,6 +440,7 @@ def get_summaries(
 
     if ignore_specials:
         select_clause = """
+            server,
             season,
             tag,
             atk_smart_sig as atk_sig, 
@@ -414,9 +451,10 @@ def get_summaries(
             SUM(total_wins) as wins,
             MAX(last_seen) as last_time
         """
-        group_by_clause = "GROUP BY season, tag, atk_smart_sig, def_smart_sig"
+        group_by_clause = "GROUP BY server, season, tag, atk_smart_sig, def_smart_sig"
     else:
         select_clause = """
+            server,
             season,
             tag,
             atk_strict_sig as atk_sig,
@@ -433,6 +471,10 @@ def get_summaries(
 
     query = f"SELECT {select_clause} FROM arena_stats WHERE 1=1"
     params = []
+
+    if server != "all":
+        query += " AND server = ?"
+        params.append(server)
 
     if season:
         query += " AND season = ?"
@@ -555,6 +597,7 @@ def get_summaries(
 
         results.append(
             {
+                "server": row["server"],
                 "season": row["season"],
                 "tag": row["tag"],
                 "attackingTeam": json.loads(row["atk_json"]),
@@ -581,6 +624,7 @@ def get_summaries(
 
 
 class ManualAddRequest(BaseModel):
+    server: str = "global"
     season: int
     tag: str = ""
     atk_team: List[int]
@@ -623,27 +667,48 @@ def manual_add(req: ManualAddRequest):
         records_to_add = []
         for _ in range(req.wins):
             records_to_add.append(
-                (req.season, req.tag, now, 1, atk_sig, def_sig, atk_json, def_json)
+                (
+                    req.server,
+                    req.season,
+                    req.tag,
+                    now,
+                    1,
+                    atk_sig,
+                    def_sig,
+                    atk_json,
+                    def_json,
+                )
             )
         for _ in range(req.losses):
             records_to_add.append(
-                (req.season, req.tag, now, 0, atk_sig, def_sig, atk_json, def_json)
+                (
+                    req.server,
+                    req.season,
+                    req.tag,
+                    now,
+                    0,
+                    atk_sig,
+                    def_sig,
+                    atk_json,
+                    def_json,
+                )
             )
 
         if records_to_add:
+
             cursor.executemany(
                 """
-                INSERT INTO battles (season, tag, timestamp, is_win, atk_team_sig, def_team_sig, atk_team_json, def_team_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO battles (server, season, tag, timestamp, is_win, atk_team_sig, def_team_sig, atk_team_json, def_team_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 records_to_add,
             )
             conn.commit()
 
-        update_specific_stat(conn, req.atk_team, req.def_team, req.tag)
+        update_specific_stat(conn, req.server, req.atk_team, req.def_team, req.tag)
 
         return {
-            "message": f"Added {len(records_to_add)} records. Stats incrementally updated."
+            "message": f"Added {len(records_to_add)} records to server '{req.server}'. Stats incrementally updated."
         }
 
     except Exception as e:
@@ -669,7 +734,8 @@ async def upload_json(file: UploadFile = File(...)):
         try:
             insert_list = []
             for row in data:
-                season = row.get("Season", 1)
+                server = row.get("Server", "global").lower()
+                season = row.get("Season", 9)
                 is_win = 1 if row.get("Win") else 0
                 tag = row.get("Tag", "")
 
@@ -696,6 +762,7 @@ async def upload_json(file: UploadFile = File(...)):
 
                 insert_list.append(
                     (
+                        server,
                         season,
                         tag,
                         timestamp,
@@ -708,13 +775,14 @@ async def upload_json(file: UploadFile = File(...)):
                 )
 
             if insert_list:
+
                 cursor.executemany(
                     """
                     INSERT INTO battles (
-                        season, tag, timestamp, is_win, 
+                        server, season, tag, timestamp, is_win, 
                         atk_team_sig, def_team_sig, 
                         atk_team_json, def_team_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     insert_list,
                 )
@@ -742,6 +810,7 @@ async def upload_json(file: UploadFile = File(...)):
 
 
 class CommentRequest(BaseModel):
+    server: str = "global"
     atk_sig: str
     def_sig: str
     username: str = "Sensei"
@@ -750,16 +819,17 @@ class CommentRequest(BaseModel):
 
 
 @app.get("/api/comments")
-def get_comments(atk_sig: str, def_sig: str):
+def get_comments(atk_sig: str, def_sig: str, server: str = "global"):
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute(
         """
         SELECT * FROM comments 
-        WHERE atk_sig = ? AND def_sig = ? 
+        WHERE server = ? AND atk_sig = ? AND def_sig = ? 
         ORDER BY created_at DESC
     """,
-        (atk_sig, def_sig),
+        (server, atk_sig, def_sig),
     )
     rows = cursor.fetchall()
     conn.close()
@@ -774,12 +844,21 @@ def add_comment(req: CommentRequest):
         import time
 
         now = int(time.time())
+
         cursor.execute(
             """
-            INSERT INTO comments (atk_sig, def_sig, username, content, parent_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO comments (server, atk_sig, def_sig, username, content, parent_id, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-            (req.atk_sig, req.def_sig, req.username, req.content, req.parent_id, now),
+            (
+                req.server,
+                req.atk_sig,
+                req.def_sig,
+                req.username,
+                req.content,
+                req.parent_id,
+                now,
+            ),
         )
         conn.commit()
         return {"id": cursor.lastrowid, "message": "Comment added"}
@@ -795,17 +874,20 @@ def delete_summary(payload: DeleteSummaryModel):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+
         cursor.execute(
-            "DELETE FROM battles WHERE atk_team_sig = ? AND def_team_sig = ?",
-            (payload.atk_sig, payload.def_sig),
+            "DELETE FROM battles WHERE server = ? AND atk_team_sig = ? AND def_team_sig = ?",
+            (payload.server, payload.atk_sig, payload.def_sig),
         )
         deleted_count = cursor.rowcount
         cursor.execute(
-            "DELETE FROM arena_stats WHERE atk_team_sig = ? AND def_team_sig = ?",
-            (payload.atk_sig, payload.def_sig),
+            "DELETE FROM arena_stats WHERE server = ? AND atk_strict_sig = ? AND def_strict_sig = ?",
+            (payload.server, payload.atk_sig, payload.def_sig),
         )
         conn.commit()
-        return {"message": f"Deleted {deleted_count} records"}
+        return {
+            "message": f"Deleted {deleted_count} battles records and associated stats for server {payload.server}"
+        }
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))

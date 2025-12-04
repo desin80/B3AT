@@ -26,18 +26,22 @@ const ArenaPage = () => {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
     const [selectorCallback, setSelectorCallback] = useState(null);
     const [modalFilterType, setModalFilterType] = useState("all");
+    const [server, setServer] = useState("all");
 
     useEffect(() => {
         const loadMeta = async () => {
             const [sList, stuList] = await Promise.all([
-                api.getSeasons(),
+                api.getSeasons(server),
                 api.getAllStudents(i18n.language),
             ]);
             setSeasonsList(sList);
             setStudentList(stuList);
+            if (season && !sList.includes(season)) {
+                setSeason(null);
+            }
         };
         loadMeta();
-    }, [i18n.language]);
+    }, [i18n.language, server]);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -52,7 +56,8 @@ const ArenaPage = () => {
                 queryFilters,
                 ITEMS_PER_PAGE,
                 sort,
-                ignoreSpecials
+                ignoreSpecials,
+                server
             );
             setSummaries(data.data);
             setTotalCount(data.total);
@@ -65,7 +70,7 @@ const ArenaPage = () => {
 
     useEffect(() => {
         fetchData();
-    }, [page, season, sort, filters, ignoreSpecials]);
+    }, [page, season, sort, filters, ignoreSpecials, server]);
 
     const handleOpenSelector = (callback, index) => {
         setSelectorCallback(() => callback);
@@ -132,6 +137,32 @@ const ArenaPage = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">
+                            {t("arena.server")}
+                        </span>
+                        <select
+                            className="bg-white border border-gray-300 rounded px-3 py-1.5 text-sm"
+                            value={server}
+                            onChange={(e) => {
+                                setServer(e.target.value);
+                                setPage(1);
+                            }}
+                        >
+                            <option value="all">
+                                {t("common.all") || "All"}
+                            </option>
+                            <option value="global">
+                                {t("arena.server_global")}
+                            </option>
+                            <option value="jp">{t("arena.server_jp")}</option>
+                            <option value="cn">{t("arena.server_cn")}</option>
+                        </select>
+                    </div>
+
+                    <span className="text-xs font-bold text-gray-500 uppercase">
+                        {t("arena.season")}
+                    </span>
                     <select
                         className="bg-white border border-gray-300 rounded px-3 py-1.5 text-sm"
                         value={season || ""}
@@ -142,13 +173,16 @@ const ArenaPage = () => {
                             setPage(1);
                         }}
                     >
-                        <option value="">{t("common.all")}</option>
+                        <option value="">
+                            {t("arena.all_seasons") || "All Seasons"}
+                        </option>
                         {seasonsList.map((s) => (
                             <option key={s} value={s}>
-                                {s}
+                                S{s}
                             </option>
                         ))}
                     </select>
+
                     <select
                         className="bg-white border border-gray-300 rounded px-3 py-1.5 text-sm"
                         value={sort}

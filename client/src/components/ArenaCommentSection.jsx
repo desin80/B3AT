@@ -96,7 +96,7 @@ const CommentItem = ({
     );
 };
 
-const ArenaCommentSection = ({ atkSig, defSig }) => {
+const ArenaCommentSection = ({ atkSig, defSig, server }) => {
     const { t } = useTranslation();
     const [comments, setComments] = useState([]);
     const [mainInput, setMainInput] = useState("");
@@ -108,14 +108,14 @@ const ArenaCommentSection = ({ atkSig, defSig }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        const savedName = localStorage.getItem("kani_username");
+        const savedName = localStorage.getItem("b3at_username");
         if (savedName) setUsername(savedName);
         loadComments();
-    }, [atkSig, defSig]);
+    }, [atkSig, defSig, server]);
 
     const loadComments = async () => {
         try {
-            const data = await api.getComments(atkSig, defSig);
+            const data = await api.getComments(atkSig, defSig, server);
             setComments(data);
         } catch (e) {
             console.error(e);
@@ -142,9 +142,16 @@ const ArenaCommentSection = ({ atkSig, defSig }) => {
         if (!content.trim()) return;
         setIsLoading(true);
         try {
-            await api.addComment(atkSig, defSig, username, content, parentId);
+            await api.addComment(
+                atkSig,
+                defSig,
+                server,
+                username,
+                content,
+                parentId
+            );
             if (username.trim())
-                localStorage.setItem("kani_username", username);
+                localStorage.setItem("b3at_username", username);
 
             if (parentId) {
                 setReplyInput("");

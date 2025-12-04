@@ -193,6 +193,16 @@ const ArenaSummaryCard = ({ summary, onDelete, isSelected, onClick }) => {
                 }`}
             >
                 <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100 shadow-sm">
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                            {t(
+                                `arena.servers.${(
+                                    summary.server || "global"
+                                ).toLowerCase()}`
+                            )}
+                        </span>
+                    </div>
+
                     <div
                         className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 text-sky-700 rounded-md border border-sky-100 shadow-sm"
                         title={t("arena.season")}
@@ -304,6 +314,7 @@ const ArenaSummaryCard = ({ summary, onDelete, isSelected, onClick }) => {
             </div>
             {showComments && (
                 <ArenaCommentSection
+                    server={summary.server}
                     atkSig={summary.atk_sig}
                     defSig={summary.def_sig}
                 />

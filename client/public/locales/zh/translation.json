@@ -54,12 +54,27 @@
             "error_max_count": "单次录入场数不能超过 {{max}}",
             "error_season": "赛季必须大于 0",
             "error_negative": "胜负场数不能为负",
-            "error_zero": "请至少录入一场胜或负"
+            "error_zero": "请至少录入一场胜或负",
+            "server": "服务器",
+            "server_global": "国际服",
+            "server_cn": "国服",
+            "server_jp": "日服"
         }
     },
     "arena": {
         "title": "战局分析列表",
+        "all_seasons": "全部",
         "season": "赛季",
+        "server": "服务器",
+        "servers": {
+            "global": "国际服",
+            "cn": "国服",
+            "jp": "日服"
+        },
+        "server_global": "国际服",
+        "server_cn": "国服",
+        "server_jp": "日服",
+        "server_all": "全部",
         "sortBy": "排序",
         "sort": {
             "default": "默认 (总场次)",
