@@ -33,7 +33,8 @@
             "desc": "上传 JSON 文件以批量导入历史战绩。这将覆盖当前的统计缓存。",
             "button": "选择文件",
             "uploading": "上传处理中...",
-            "success": "导入成功！"
+            "success": "导入成功！",
+            "file_too_large": "文件过大，请选择小于20MB的文件。"
         },
         "manual_section": {
             "title": "手动录入",
@@ -48,7 +49,12 @@
             "success": "已添加 {{count}} 条记录",
             "tag": "标签",
             "tag_none": "无",
-            "tag_low_atk": "压攻 (低攻击)"
+            "tag_low_atk": "压攻 (低攻击)",
+            "error_empty": "队伍不能为空",
+            "error_max_count": "单次录入场数不能超过 {{max}}",
+            "error_season": "赛季必须大于 0",
+            "error_negative": "胜负场数不能为负",
+            "error_zero": "请至少录入一场胜或负"
         }
     },
     "arena": {

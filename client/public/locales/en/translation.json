@@ -37,7 +37,8 @@
             "desc": "Upload a JSON file to batch import history. This will refresh the stats cache.",
             "button": "Select File",
             "uploading": "Uploading...",
-            "success": "Import Successful!"
+            "success": "Import Successful!",
+            "file_too_large": "File too large. Please select a file under 20MB."
         },
         "manual_section": {
             "title": "Manual Entry",
@@ -52,7 +53,12 @@
             "success": "Added {{count}} records",
             "tag": "Tag",
             "tag_none": "None",
-            "tag_low_atk": "Low Atk Bait"
+            "tag_low_atk": "Low Atk Bait",
+            "error_empty": "Teams cannot be empty",
+            "error_max_count": "Max {{max}} records per entry",
+            "error_season": "Season must be positive",
+            "error_negative": "Counts cannot be negative",
+            "error_zero": "Must add at least one win or loss"
         }
     },
     "arena": {

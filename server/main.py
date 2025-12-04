@@ -8,6 +8,8 @@ import math
 from datetime import datetime
 import time
 
+MAX_MANUAL_COUNT = 2000
+
 app = FastAPI()
 
 
@@ -589,6 +591,23 @@ class ManualAddRequest(BaseModel):
 
 @app.post("/api/manual_add")
 def manual_add(req: ManualAddRequest):
+    if req.season < 1:
+        raise HTTPException(status_code=400, detail="Season must be a positive integer")
+
+    if req.wins > MAX_MANUAL_COUNT or req.losses > MAX_MANUAL_COUNT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Wins and Losses must each be less than {MAX_MANUAL_COUNT}",
+        )
+
+    if req.wins < 0 or req.losses < 0:
+        raise HTTPException(status_code=400, detail="Counts cannot be negative")
+
+    if req.wins == 0 and req.losses == 0:
+        raise HTTPException(
+            status_code=400, detail="At least one win or loss is required"
+        )
+
     conn = get_db_connection()
     cursor = conn.cursor()
     import time

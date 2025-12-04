@@ -81,15 +81,22 @@ const SettingsPage = () => {
         const file = event.target.files[0];
         if (!file) return;
 
+        const MAX_SIZE = 20 * 1024 * 1024;
+        if (file.size > MAX_SIZE) {
+            setUploadStatus(t("settings.import_section.file_too_large"));
+            event.target.value = null;
+            return;
+        }
+
         setUploading(true);
         setUploadStatus(t("settings.import_section.uploading"));
 
         try {
             const result = await api.uploadData(file);
-            setUploadStatus("✅ " + t("settings.import_section.success"));
+            setUploadStatus(t("settings.import_section.success"));
         } catch (err) {
             console.error(err);
-            setUploadStatus("❌ Error: " + err.message);
+            setUploadStatus("Error: " + err.message);
         } finally {
             setUploading(false);
         }
@@ -128,7 +135,32 @@ const SettingsPage = () => {
         const cleanDef = defTeam.filter((id) => id > 0);
 
         if (cleanAtk.length === 0 || cleanDef.length === 0) {
-            setManualStatus("❌ Teams cannot be empty");
+            setManualStatus(t("settings.manual_section.error_empty"));
+            return;
+        }
+
+        const s = parseInt(season);
+        const w = parseInt(wins);
+        const l = parseInt(losses);
+        const MAX_COUNT = 2000;
+        if (s < 1) {
+            setManualStatus(t("settings.manual_section.error_season"));
+            return;
+        }
+        if (w < 0 || l < 0) {
+            setManualStatus(t("settings.manual_section.error_negative"));
+            return;
+        }
+        if (w > MAX_COUNT || l > MAX_COUNT) {
+            setManualStatus(
+                `${t("settings.manual_section.error_max_count", {
+                    max: MAX_COUNT,
+                })}`
+            );
+            return;
+        }
+        if (w === 0 && l === 0) {
+            setManualStatus(t("settings.manual_section.error_zero"));
             return;
         }
 
@@ -145,13 +177,12 @@ const SettingsPage = () => {
                 losses: parseInt(losses),
             });
             setManualStatus(
-                "✅ " +
-                    t("settings.manual_section.success", {
-                        count: parseInt(wins) + parseInt(losses),
-                    })
+                t("settings.manual_section.success", {
+                    count: parseInt(wins) + parseInt(losses),
+                })
             );
         } catch (err) {
-            setManualStatus("❌ Error: " + err.message);
+            setManualStatus("Error: " + err.message);
         } finally {
             setAdding(false);
         }
