@@ -27,27 +27,38 @@
         "delete": "Delete",
         "confirmDelete": "Are you sure you want to delete this?",
         "go": "Go",
-        "page": "Page"
+        "page": "Page",
+        "cancel": "Cancel",
+        "confirm": "Confirm"
     },
     "settings": {
         "title": "Data Management",
         "description": "Import and Manage Data",
         "import_section": {
             "title": "Import Data",
-            "desc": "Upload a JSON file to batch import history. This will refresh the stats cache.",
+            "desc": "Upload a JSON file to bulk import battle history.",
             "button": "Select File",
             "uploading": "Uploading...",
             "success": "Import Successful!",
-            "file_too_large": "File too large. Please select a file under 20MB."
+            "file_too_large": "File too large. Please select a file smaller than 20MB.",
+            "confirm_title": "Confirm Import",
+            "confirm_desc": "The following default values will be applied to records missing these fields:",
+            "default_server": "Default Server",
+            "default_season": "Default Season",
+            "default_helper": "* Applied if missing in JSON"
         },
         "manual_section": {
             "title": "Manual Entry",
             "desc": "Manually add test results or missing records.",
+            "confirm_title": "Confirm Submission",
             "season": "Season",
             "atk": "Attacking Team",
             "def": "Defending Team",
+            "result": "Result",
             "wins": "Wins",
             "losses": "Losses",
+            "win_short": "W",
+            "loss_short": "L",
             "submit": "Add Records",
             "adding": "Adding...",
             "success": "Added {{count}} records",

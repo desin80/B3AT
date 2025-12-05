@@ -23,22 +23,31 @@
         "delete": "删除",
         "confirmDelete": "确定要删除这条记录吗？",
         "go": "跳转",
-        "page": "页码"
+        "page": "页码",
+        "cancel": "取消",
+        "confirm": "确认"
     },
     "settings": {
         "title": "数据管理",
         "description": "导入和管理数据",
         "import_section": {
             "title": "导入数据",
-            "desc": "上传 JSON 文件以批量导入历史战绩。这将覆盖当前的统计缓存。",
+            "desc": "上传 JSON 文件以批量导入历史战绩。",
             "button": "选择文件",
             "uploading": "上传处理中...",
             "success": "导入成功！",
-            "file_too_large": "文件过大，请选择小于20MB的文件。"
+            "file_too_large": "文件过大，请选择小于20MB的文件。",
+            "confirm_title": "确认导入",
+            "confirm_desc": "将对文件中缺失字段的记录应用以下默认值：",
+            "default_server": "默认服务器",
+            "default_season": "默认赛季",
+            "default_helper": "* 仅应用于 JSON 中缺失的字段"
         },
         "manual_section": {
             "title": "手动录入",
-            "desc": "手动添加特定阵容的测试结果或缺失数据。",
+            "desc": "手动添加特定阵容的测试结果。",
+            "result": "战绩",
+            "confirm_title": "确认提交",
             "season": "赛季",
             "atk": "进攻方",
             "def": "防守方",
@@ -47,6 +56,8 @@
             "submit": "添加记录",
             "adding": "添加中...",
             "success": "已添加 {{count}} 条记录",
+            "win_short": "胜",
+            "loss_short": "负",
             "tag": "标签",
             "tag_none": "无",
             "tag_low_atk": "压攻 (低攻击)",

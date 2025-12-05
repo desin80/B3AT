@@ -1,5 +1,4 @@
-# app/routers/stats.py
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Optional
 import json
 import time
@@ -173,7 +172,11 @@ def manual_add(req: ManualAddRequest):
 
 
 @router.post("/api/upload")
-async def upload_json(file: UploadFile = File(...)):
+async def upload_json(
+    file: UploadFile = File(...),
+    default_server: str = Form("global"),
+    default_season: int = Form(9),
+):
     try:
         content = await file.read()
         data = json.loads(content)
@@ -188,8 +191,9 @@ async def upload_json(file: UploadFile = File(...)):
         try:
             insert_list = []
             for row in data:
-                server = row.get("Server", "global").lower()
-                season = row.get("Season", 9)
+                server = row.get("Server", default_server).lower()
+                season = row.get("Season", default_season)
+
                 is_win = 1 if row.get("Win") else 0
                 tag = row.get("Tag", "")
 

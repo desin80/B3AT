@@ -31,9 +31,11 @@ const api = {
         }
     },
 
-    uploadData: async (file) => {
+    uploadData: async (file, defaultServer = "global", defaultSeason = 9) => {
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("default_server", defaultServer);
+        formData.append("default_season", defaultSeason);
 
         const res = await fetch(`${API_BASE}/upload`, {
             method: "POST",
@@ -47,6 +49,7 @@ const api = {
         }
         return data;
     },
+
     getAllStudents: async (lang = "en") => {
         try {
             const dbLang = lang.startsWith("zh") ? "zh" : "en";
