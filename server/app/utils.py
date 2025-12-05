@@ -20,11 +20,26 @@ def posterior_mean(wins, n, alpha=1, beta=1):
 
 def generate_signatures(team_list):
     ids = [str(i) for i in team_list]
-    strict_sig = ",".join(ids)
-    if len(ids) >= 6:
-        strikers = ids[:4]
-        specials = sorted(ids[4:])
-        smart_sig = ",".join(strikers + specials)
-    else:
-        smart_sig = strict_sig
+    raw_sig = ",".join(ids)
+    strict_sig = raw_sig
+    smart_sig = normalize_to_smart_sig(raw_sig)
     return strict_sig, smart_sig
+
+
+def normalize_to_smart_sig(sig_str: str) -> str:
+    if not sig_str:
+        return ""
+
+    parts = [x.strip() for x in sig_str.split(",") if x.strip()]
+
+    strikers = []
+    specials = []
+
+    for pid in parts:
+        if pid.startswith("2"):
+            specials.append(pid)
+        else:
+            strikers.append(pid)
+    specials.sort(key=lambda x: int(x) if x.isdigit() else x)
+    final_list = strikers + specials
+    return ",".join(final_list)

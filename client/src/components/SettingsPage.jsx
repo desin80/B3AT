@@ -67,6 +67,8 @@ const SettingsPage = () => {
     const [modalFilterType, setModalFilterType] = useState("all");
     const [tag, setTag] = useState("");
     const [server, setServer] = useState("global");
+    const [uploadIsError, setUploadIsError] = useState(false);
+    const [manualIsError, setManualIsError] = useState(false);
 
     useEffect(() => {
         api.getAllStudents(i18n.language).then(setStudentList);
@@ -85,19 +87,23 @@ const SettingsPage = () => {
         const MAX_SIZE = 20 * 1024 * 1024;
         if (file.size > MAX_SIZE) {
             setUploadStatus(t("settings.import_section.file_too_large"));
+            setUploadIsError(true);
             event.target.value = null;
             return;
         }
 
         setUploading(true);
         setUploadStatus(t("settings.import_section.uploading"));
+        setUploadIsError(false);
 
         try {
             const result = await api.uploadData(file);
             setUploadStatus(t("settings.import_section.success"));
+            setUploadIsError(false);
         } catch (err) {
             console.error(err);
             setUploadStatus("Error: " + err.message);
+            setUploadIsError(true);
         } finally {
             setUploading(false);
         }
@@ -137,6 +143,7 @@ const SettingsPage = () => {
 
         if (cleanAtk.length === 0 || cleanDef.length === 0) {
             setManualStatus(t("settings.manual_section.error_empty"));
+            setManualIsError(true);
             return;
         }
 
@@ -144,12 +151,15 @@ const SettingsPage = () => {
         const w = parseInt(wins);
         const l = parseInt(losses);
         const MAX_COUNT = 2000;
+
         if (s < 1) {
             setManualStatus(t("settings.manual_section.error_season"));
+            setManualIsError(true);
             return;
         }
         if (w < 0 || l < 0) {
             setManualStatus(t("settings.manual_section.error_negative"));
+            setManualIsError(true);
             return;
         }
         if (w > MAX_COUNT || l > MAX_COUNT) {
@@ -158,15 +168,18 @@ const SettingsPage = () => {
                     max: MAX_COUNT,
                 })}`
             );
+            setManualIsError(true);
             return;
         }
         if (w === 0 && l === 0) {
             setManualStatus(t("settings.manual_section.error_zero"));
+            setManualIsError(true);
             return;
         }
 
         setAdding(true);
         setManualStatus(t("settings.manual_section.adding"));
+        setManualIsError(false);
 
         try {
             await api.manualAddRecord({
@@ -183,8 +196,10 @@ const SettingsPage = () => {
                     count: parseInt(wins) + parseInt(losses),
                 })
             );
+            setManualIsError(false);
         } catch (err) {
             setManualStatus("Error: " + err.message);
+            setManualIsError(true);
         } finally {
             setAdding(false);
         }
@@ -233,7 +248,7 @@ const SettingsPage = () => {
                     {uploadStatus && (
                         <span
                             className={`text-sm font-medium ${
-                                uploadStatus.includes("Error")
+                                uploadIsError
                                     ? "text-red-500"
                                     : "text-green-600"
                             }`}
@@ -388,7 +403,7 @@ const SettingsPage = () => {
                     {manualStatus && (
                         <span
                             className={`text-sm font-medium ${
-                                manualStatus.includes("Error")
+                                manualIsError
                                     ? "text-red-500"
                                     : "text-green-600"
                             }`}
