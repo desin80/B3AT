@@ -136,6 +136,7 @@ const api = {
         const params = new URLSearchParams({
             atk_sig: atkSig,
             def_sig: defSig,
+            server: server,
         });
         const res = await fetch(`${API_BASE}/comments?${params}`);
         if (!res.ok) throw new Error("Failed to load comments");

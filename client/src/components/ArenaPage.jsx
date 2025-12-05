@@ -17,7 +17,7 @@ const ArenaPage = () => {
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const [studentList, setStudentList] = useState([]);
-    const [ignoreSpecials, setIgnoreSpecials] = useState(false);
+    const [ignoreSpecials, setIgnoreSpecials] = useState(true);
     const [season, setSeason] = useState(null);
     const [seasonsList, setSeasonsList] = useState([]);
     const [sort, setSort] = useState("default");
@@ -233,7 +233,7 @@ const ArenaPage = () => {
                     ) : (
                         summaries.map((item) => (
                             <ArenaSummaryCard
-                                key={`${item.season}-${item.atk_sig}-${item.def_sig}`}
+                                key={`${item.server}-${item.season}-${item.atk_sig}-${item.def_sig}`}
                                 summary={item}
                             />
                         ))
