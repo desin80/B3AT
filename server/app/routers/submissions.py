@@ -3,10 +3,14 @@ from typing import Optional
 import json
 import time
 import shutil
+import uuid
 from pathlib import Path
 from ..database import get_db_connection
 from ..routers.auth import get_current_admin
 from ..crud import update_specific_stat
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_FILE_SIZE = 10 * 1024 * 1024
 
 router = APIRouter()
 
@@ -23,7 +27,7 @@ async def create_submission(
     def_team: str = Form(...),
     wins: int = Form(...),
     losses: int = Form(...),
-    note: str = Form(""),
+    note: str = Form("", max_length=1000),
     image: Optional[UploadFile] = File(None),
 ):
     conn = get_db_connection()
@@ -32,10 +36,26 @@ async def create_submission(
     try:
         image_path = None
         if image:
-            filename = f"{int(time.time())}_{image.filename}"
+            file_ext = Path(image.filename).suffix.lower()
+            if file_ext not in ALLOWED_EXTENSIONS:
+                raise HTTPException(status_code=400, detail="Unsupported file type")
+
+            image.file.seek(0, 2)
+            file_size = image.file.tell()
+
+            if file_size > MAX_FILE_SIZE:
+                raise HTTPException(
+                    status_code=400, detail="Image size cannot exceed 10MB"
+                )
+
+            image.file.seek(0)
+
+            filename = f"{uuid.uuid4().hex}{file_ext}"
             file_location = UPLOAD_DIR / filename
+
             with open(file_location, "wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
+
             image_path = f"/uploads/{filename}"
 
         cursor.execute(
@@ -61,6 +81,8 @@ async def create_submission(
 
         conn.commit()
         return {"message": "Submission received. Waiting for admin approval."}
+    except HTTPException as he:
+        raise he
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))

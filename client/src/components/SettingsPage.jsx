@@ -108,10 +108,11 @@ const ReviewPanel = ({ onRefresh, studentMap }) => {
         );
     };
 
-    const API_ROOT = (import.meta.env.VITE_API_BASE_URL || "").replace(
-        "/api",
-        ""
-    );
+    const API_ROOT = useMemo(() => {
+        const envUrl =
+            import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+        return envUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    }, []);
 
     const renderTeamImages = (teamIds) => {
         return (
@@ -206,13 +207,13 @@ const ReviewPanel = ({ onRefresh, studentMap }) => {
                                         className="w-full md:w-32 h-24 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden cursor-pointer border border-gray-200 group relative"
                                         onClick={() =>
                                             window.open(
-                                                API_ROOT + item.image_path,
+                                                `${API_ROOT}${item.image_path}`,
                                                 "_blank"
                                             )
                                         }
                                     >
                                         <img
-                                            src={API_ROOT + item.image_path}
+                                            src={`${API_ROOT}${item.image_path}`}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                                             alt="proof"
                                         />
