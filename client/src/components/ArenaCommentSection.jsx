@@ -94,7 +94,7 @@ const CommentItem = ({
                             {t("arena.comments.submit")}
                         </button>
                         <button
-                            onClick={() => onReply(null)} // Cancel
+                            onClick={() => onReply(null)}
                             className="text-gray-500 hover:text-gray-700 px-2 py-1 text-xs"
                         >
                             {t("arena.comments.cancel")}

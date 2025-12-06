@@ -4,8 +4,9 @@ from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
-from app.routers import battles, comments, stats, auth
+from app.routers import battles, comments, stats, auth, submissions
 from app.config import ALLOWED_ORIGINS
+from fastapi.staticfiles import StaticFiles
 
 
 @asynccontextmanager
@@ -41,10 +42,12 @@ def read_root():
     return {"status": "Server is running"}
 
 
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth.router)
 app.include_router(battles.router)
 app.include_router(comments.router)
 app.include_router(stats.router)
+app.include_router(submissions.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

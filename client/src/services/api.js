@@ -213,13 +213,47 @@ const api = {
     },
 
     manualAddRecord: async (payload) => {
-        // payload: { season, tag, atk_team, def_team, wins, losses }
         const res = await fetch(`${API_BASE}/manual_add`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Failed to add records");
+        return await res.json();
+    },
+    submitRequest: async (formData) => {
+        const res = await fetch(`${API_BASE}/submissions`, {
+            method: "POST",
+            body: formData,
+        });
+        if (!res.ok) throw new Error("Submission failed");
+        return await res.json();
+    },
+
+    getSubmissions: async () => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/submissions`, { headers });
+        if (!res.ok) throw new Error("Failed to fetch submissions");
+        return await res.json();
+    },
+
+    approveSubmission: async (id) => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/submissions/${id}/approve`, {
+            method: "POST",
+            headers,
+        });
+        if (!res.ok) throw new Error("Approval failed");
+        return await res.json();
+    },
+
+    rejectSubmission: async (id) => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/submissions/${id}/reject`, {
+            method: "POST",
+            headers,
+        });
+        if (!res.ok) throw new Error("Rejection failed");
         return await res.json();
     },
 };

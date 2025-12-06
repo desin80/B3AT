@@ -98,6 +98,26 @@ def init_db():
     """
     )
 
+    cursor.executescript(
+        """
+    CREATE TABLE IF NOT EXISTS submissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server TEXT NOT NULL,
+        season INTEGER NOT NULL,
+        tag TEXT,
+        atk_team_json TEXT NOT NULL,
+        def_team_json TEXT NOT NULL,
+        wins INTEGER NOT NULL,
+        losses INTEGER NOT NULL,
+        note TEXT,
+        image_path TEXT,
+        status TEXT DEFAULT 'pending', -- pending, approved, rejected
+        created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_submissions_status ON submissions(status);
+    """
+    )
+
     conn.commit()
     conn.close()
     print("Database initialized successfully.")

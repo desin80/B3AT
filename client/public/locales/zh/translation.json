@@ -35,10 +35,14 @@
         "title": "数据管理",
         "description": "导入和管理数据",
         "review_panel": {
-            "title": "管理员审核面板",
+            "title": "审核面板",
             "empty": "暂无待审核请求",
             "approve": "批准",
-            "reject": "拒绝"
+            "reject": "拒绝",
+            "confirm_approve": "确定要批准此请求吗？这将向数据库添加 {{count}} 条记录。",
+            "confirm_reject": "确定要拒绝此请求吗？",
+            "approved_success": "已批准并合并数据",
+            "rejected_success": "已拒绝该请求"
         },
         "import_section": {
             "title": "导入数据",
@@ -56,6 +60,8 @@
         "manual_section": {
             "title": "手动录入",
             "desc": "手动添加特定阵容的测试结果。",
+            "desc_request": "提交你的战绩审核请求。",
+            "note_placeholder": "例如：已验证5场",
             "result": "战绩",
             "confirm_title": "确认提交",
             "season": "赛季",

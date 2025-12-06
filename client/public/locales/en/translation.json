@@ -39,7 +39,7 @@
         "title": "Data Management",
         "description": "Import and Manage Data",
         "review_panel": {
-            "title": "Admin Review Panel",
+            "title": "Review Panel",
             "empty": "No pending submissions.",
             "approve": "Approve",
             "reject": "Reject"
@@ -60,6 +60,8 @@
         "manual_section": {
             "title": "Manual Entry",
             "desc": "Manually add test results or missing records.",
+            "desc_request": "Submit your battle results for review.",
+            "note_placeholder": "E.g. Validated with 5 runs",
             "confirm_title": "Confirm Submission",
             "season": "Season",
             "atk": "Attacking Team",
