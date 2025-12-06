@@ -1,5 +1,5 @@
-const API_BASE =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+const ENV_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE = ENV_URL.endsWith("/api") ? ENV_URL : `${ENV_URL}/api`;
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem("b3at_admin_token");
@@ -9,7 +9,8 @@ const getAuthHeaders = () => {
 const api = {
     checkHealth: async () => {
         try {
-            const res = await fetch("http://localhost:8000/");
+            const rootUrl = API_BASE.replace(/\/api$/, "");
+            const res = await fetch(`${rootUrl}/`);
             return res.ok;
         } catch (e) {
             console.warn("Backend not reachable", e);
