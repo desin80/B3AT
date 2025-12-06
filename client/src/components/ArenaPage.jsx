@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import ArenaSummaryCard from "../components/ArenaSummaryCard";
 import Pagination from "../components/Pagination";
 import ArenaFilterPanel from "../components/ArenaFilterPanel";
 import StudentSelectorModal from "../components/StudentSelectorModal";
+import { useAuth } from "../context/AuthContext";
+import { useUI } from "../context/UIContext";
 import "./ArenaPage.css";
 
 const ITEMS_PER_PAGE = 20;
 
 const ArenaPage = () => {
     const { t, i18n } = useTranslation();
+    const { isAdmin } = useAuth();
+    const { showToast, showConfirm } = useUI();
 
     const [summaries, setSummaries] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +31,10 @@ const ArenaPage = () => {
     const [selectorCallback, setSelectorCallback] = useState(null);
     const [modalFilterType, setModalFilterType] = useState("all");
     const [server, setServer] = useState("all");
+    const [selectedSet, setSelectedSet] = useState(new Set());
+
+    const getItemKey = (item) =>
+        `${item.server}|${item.atk_sig}|${item.def_sig}`;
 
     useEffect(() => {
         const loadMeta = async () => {
@@ -63,12 +71,15 @@ const ArenaPage = () => {
             setTotalCount(data.total);
         } catch (error) {
             console.error("Error loading arena data", error);
+            showToast("Failed to load data", "error");
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
+        setSelectedSet(new Set());
+
         fetchData();
     }, [page, season, sort, filters, ignoreSpecials, server]);
 
@@ -82,9 +93,72 @@ const ArenaPage = () => {
         setIsSelectorOpen(true);
     };
 
+    const handleDeleteSummary = async (atkSig, defSig, srv) => {
+        try {
+            await api.deleteArenaSummary(atkSig, defSig, srv);
+            showToast(
+                t("common.delete_success", "Deleted successfully"),
+                "success"
+            );
+            fetchData();
+        } catch (e) {
+            showToast(e.message, "error");
+        }
+    };
+
+    const handleToggleCheck = (item, checked) => {
+        const key = getItemKey(item);
+        const newSet = new Set(selectedSet);
+        if (checked) {
+            newSet.add(key);
+        } else {
+            newSet.delete(key);
+        }
+        setSelectedSet(newSet);
+    };
+
+    const handleSelectAllPage = () => {
+        const newSet = new Set(selectedSet);
+        const allSelected =
+            summaries.length > 0 &&
+            summaries.every((item) => newSet.has(getItemKey(item)));
+
+        if (allSelected) {
+            summaries.forEach((item) => newSet.delete(getItemKey(item)));
+        } else {
+            summaries.forEach((item) => newSet.add(getItemKey(item)));
+        }
+        setSelectedSet(newSet);
+    };
+    const handleBatchDelete = () => {
+        if (selectedSet.size === 0) return;
+
+        showConfirm(
+            t("arena.batch.confirm_title"),
+            t("arena.batch.confirm_msg", {
+                count: selectedSet.size,
+            }),
+            async () => {
+                try {
+                    const itemsToDelete = Array.from(selectedSet).map((key) => {
+                        const [srv, atk, def] = key.split("|");
+                        return { server: srv, atk_sig: atk, def_sig: def };
+                    });
+
+                    await api.batchDeleteSummaries(itemsToDelete);
+
+                    showToast(t("common.delete_success"), "success");
+                    setSelectedSet(new Set());
+                    fetchData();
+                } catch (e) {
+                    showToast(e.message, "error");
+                }
+            }
+        );
+    };
+
     return (
-        <div className="w-full">
-            {/* Filter Toggle Bar */}
+        <div className="w-full pb-24">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 bg-white/50 p-4 rounded-lg border border-gray-200 backdrop-blur-sm gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                     <h2 className="text-xl font-bold text-gray-800">
@@ -207,7 +281,6 @@ const ArenaPage = () => {
                     </select>
                 </div>
             </div>
-
             {showFilter && (
                 <ArenaFilterPanel
                     filters={filters}
@@ -219,9 +292,8 @@ const ArenaPage = () => {
                     onOpenSelector={handleOpenSelector}
                 />
             )}
-
             <div className="overflow-x-auto pb-4">
-                <div className="min-w-[900px]">
+                <div className="min-w-[900px] p-1">
                     {isLoading ? (
                         <div className="text-center py-10 text-gray-500 text-lg">
                             {t("common.loading")}
@@ -231,16 +303,21 @@ const ArenaPage = () => {
                             {t("arena.noData")}
                         </div>
                     ) : (
-                        summaries.map((item) => (
-                            <ArenaSummaryCard
-                                key={`${item.server}-${item.season}-${item.atk_sig}-${item.def_sig}`}
-                                summary={item}
-                            />
-                        ))
+                        summaries.map((item) => {
+                            const key = getItemKey(item);
+                            return (
+                                <ArenaSummaryCard
+                                    key={key}
+                                    summary={item}
+                                    onDelete={handleDeleteSummary}
+                                    isChecked={selectedSet.has(key)}
+                                    onToggleCheck={handleToggleCheck}
+                                />
+                            );
+                        })
                     )}
                 </div>
             </div>
-
             <div className="mt-6">
                 <Pagination
                     currentPage={page}
@@ -249,7 +326,62 @@ const ArenaPage = () => {
                     onPageChange={setPage}
                 />
             </div>
+            {isAdmin && selectedSet.size > 0 && (
+                <div className="fixed bottom-6 left-0 right-0 mx-auto w-[90%] max-w-2xl z-[60] animate-fade-in-up">
+                    <div className="bg-gray-900/90 backdrop-blur-md text-white px-6 py-4 rounded-full shadow-2xl flex items-center justify-between border border-gray-700">
+                        <div className="flex items-center gap-4">
+                            <span className="font-bold text-lg text-red-400">
+                                {selectedSet.size}
+                            </span>
+                            <span className="text-sm text-gray-300">
+                                {t("arena.batch.selected")}
+                            </span>
 
+                            <div className="h-4 w-px bg-gray-600 mx-2"></div>
+
+                            <button
+                                onClick={handleSelectAllPage}
+                                className="text-sm text-gray-300 hover:text-white underline decoration-dotted"
+                            >
+                                {summaries.length > 0 &&
+                                summaries.every((item) =>
+                                    selectedSet.has(getItemKey(item))
+                                )
+                                    ? t("arena.batch.deselect_page")
+                                    : t("arena.batch.select_page")}
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setSelectedSet(new Set())}
+                                className="px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+                            >
+                                {t("common.cancel")}
+                            </button>
+                            <button
+                                onClick={handleBatchDelete}
+                                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-full shadow-lg transition-transform active:scale-95 flex items-center gap-2"
+                            >
+                                <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                </svg>
+                                {t("arena.batch.delete_selected")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <StudentSelectorModal
                 isOpen={isSelectorOpen}
                 onClose={() => setIsSelectorOpen(false)}

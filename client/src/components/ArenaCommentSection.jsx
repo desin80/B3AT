@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useUI } from "../context/UIContext";
 
 const CommentItem = ({
     comment,
@@ -13,7 +15,8 @@ const CommentItem = ({
     isLoading,
 }) => {
     const { t } = useTranslation();
-
+    const { isAdmin } = useAuth();
+    const { showConfirm } = useUI();
     const formatDate = (ts) => new Date(ts * 1000).toLocaleString();
 
     const isReply = !!comment.parent_id;
@@ -52,13 +55,20 @@ const CommentItem = ({
                         {t("arena.comments.reply")}
                     </button>
                 )}
-
-                <button
-                    onClick={() => onDelete(comment.id)}
-                    className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                    {t("common.delete")}
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => {
+                            showConfirm(
+                                t("common.delete"),
+                                t("arena.comments.delete_confirm"),
+                                () => onDelete(comment.id)
+                            );
+                        }}
+                        className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        {t("common.delete")}
+                    </button>
+                )}
             </div>
 
             {currentReplyId === comment.id && (
@@ -98,6 +108,7 @@ const CommentItem = ({
 
 const ArenaCommentSection = ({ atkSig, defSig, server }) => {
     const { t } = useTranslation();
+    const { showToast } = useUI();
     const [comments, setComments] = useState([]);
     const [mainInput, setMainInput] = useState("");
     const [username, setUsername] = useState("");
@@ -159,24 +170,27 @@ const ArenaCommentSection = ({ atkSig, defSig, server }) => {
             } else {
                 setMainInput("");
             }
-
+            showToast(
+                t("arena.comments.post_success", "Comment posted"),
+                "success"
+            );
             loadComments();
         } catch (e) {
-            alert(e.message);
+            showToast(e.message, "error");
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t("arena.comments.delete_confirm"))) return;
         try {
             await api.deleteComment(id);
             setComments((prev) =>
                 prev.filter((c) => c.id !== id && c.parent_id !== id)
             );
+            showToast(t("common.delete_success", "Deleted"), "success");
         } catch (e) {
-            console.error(e);
+            showToast(e.message, "error");
         }
     };
 

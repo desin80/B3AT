@@ -4,7 +4,8 @@ from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
-from app.routers import battles, comments, stats
+from app.routers import battles, comments, stats, auth
+from app.config import ALLOWED_ORIGINS
 
 
 @asynccontextmanager
@@ -28,7 +29,7 @@ async def add_process_time_header(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +41,7 @@ def read_root():
     return {"status": "Server is running"}
 
 
+app.include_router(auth.router)
 app.include_router(battles.router)
 app.include_router(comments.router)
 app.include_router(stats.router)

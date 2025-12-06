@@ -5,10 +5,12 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import Footer from "./Footer";
 import "./Layout.css";
 import logo from "../assets/logo.png";
+import { useAuth } from "../context/AuthContext";
 
 const Layout = () => {
     const { t } = useTranslation();
     const location = useLocation();
+    const { isAdmin, logout } = useAuth();
 
     const isActive = (path) => {
         return location.pathname === path
@@ -28,7 +30,6 @@ const Layout = () => {
 
     return (
         <div className="flex flex-col min-h-screen relative">
-            {/* Top Navigation */}
             <nav className="fixed top-0 left-0 right-0 z-50 topbar-bg shadow-md">
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
@@ -74,8 +75,17 @@ const Layout = () => {
                                 </Link>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3">
                             <LanguageSwitcher />
+
+                            {isAdmin && (
+                                <button
+                                    onClick={logout}
+                                    className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-md border border-red-200 text-sm transition-all font-medium"
+                                >
+                                    {t("common.logout", "Logout")}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,13 +1,14 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from typing import Optional
 import json
 import time
 from datetime import datetime
 from ..database import get_db_connection
-from ..models import ManualAddRequest, DeleteSummaryModel
+from ..models import ManualAddRequest, DeleteSummaryModel, BatchDeleteRequest
 from ..config import MAX_MANUAL_COUNT
 from ..crud import recalculate_all_stats, update_specific_stat, get_filtered_summaries
 from ..utils import wilson_lower_bound
+from .auth import get_current_admin
 
 router = APIRouter()
 
@@ -266,7 +267,9 @@ async def upload_json(
 
 
 @router.post("/api/summaries/delete")
-def delete_summary(payload: DeleteSummaryModel):
+def delete_summary(
+    payload: DeleteSummaryModel, admin: str = Depends(get_current_admin)
+):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -282,6 +285,37 @@ def delete_summary(payload: DeleteSummaryModel):
         conn.commit()
         return {
             "message": f"Deleted {deleted_count} battles records and associated stats for server {payload.server}"
+        }
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
+
+
+@router.post("/api/summaries/batch_delete")
+def batch_delete_summaries(
+    payload: BatchDeleteRequest, admin: str = Depends(get_current_admin)
+):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        deleted_count = 0
+
+        for item in payload.items:
+            cursor.execute(
+                "DELETE FROM battles WHERE server = ? AND atk_team_sig = ? AND def_team_sig = ?",
+                (item.server, item.atk_sig, item.def_sig),
+            )
+            cursor.execute(
+                "DELETE FROM arena_stats WHERE server = ? AND atk_strict_sig = ? AND def_strict_sig = ?",
+                (item.server, item.atk_sig, item.def_sig),
+            )
+            deleted_count += 1
+
+        conn.commit()
+        return {
+            "message": f"Successfully processed batch delete for {deleted_count} items."
         }
     except Exception as e:
         conn.rollback()

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../context/AuthContext";
+import { useUI } from "../context/UIContext";
 
 import attackIcon from "../assets/attack.png";
 import defendIcon from "../assets/defend.png";
 import vsIcon from "../assets/vs.png";
 import cardBg from "../assets/card_bg.png";
-
 import unknownBg from "../assets/card_bg_unknown.png";
 import ArenaCommentSection from "./ArenaCommentSection";
 
@@ -50,7 +51,7 @@ const StatWithTooltip = ({
     }
 
     return (
-        <div className="group relative flex items-center gap-2 cursor-help z-0 hover:z-50">
+        <div className="group/stat relative flex items-center gap-2 cursor-help z-0 hover:z-50">
             <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wide border-b border-dotted border-gray-400 hover:border-gray-600 transition-colors">
                     {label}
@@ -65,7 +66,7 @@ const StatWithTooltip = ({
                 {icon}
             </div>
             <div
-                className={`absolute bottom-full mb-2 w-48 p-2 bg-gray-800/95 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] pointer-events-none text-center ${positionClass}`}
+                className={`absolute bottom-full mb-2 w-48 p-2 bg-gray-800/95 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover/stat:opacity-100 group-hover/stat:visible transition-all duration-200 z-[100] pointer-events-none text-center ${positionClass}`}
             >
                 {tooltipText}
                 <div
@@ -129,9 +130,20 @@ const TeamAvatars = ({ teamIds }) => {
     );
 };
 
-const ArenaSummaryCard = ({ summary, onDelete, isSelected, onClick }) => {
+const ArenaSummaryCard = ({
+    summary,
+    onDelete,
+    isSelected,
+    onClick,
+    isChecked,
+    onToggleCheck,
+}) => {
     const { t } = useTranslation();
+    const { isAdmin } = useAuth();
+    const { showConfirm } = useUI();
+
     const [showComments, setShowComments] = useState(false);
+
     const winRate = (summary.winRate * 100).toFixed(0);
     const smoothRate = (summary.avgWinRate * 100).toFixed(1);
     const wilsonScore = (summary.wilsonScore * 100).toFixed(1);
@@ -146,13 +158,66 @@ const ArenaSummaryCard = ({ summary, onDelete, isSelected, onClick }) => {
         setShowComments(!showComments);
     };
 
+    const handleDeleteClick = (e) => {
+        e.stopPropagation();
+        showConfirm(
+            t("common.delete_confirm", "Delete Record"),
+            t(
+                "arena.delete_warning",
+                "Are you sure you want to delete this record?"
+            ),
+            () => onDelete(summary.atk_sig, summary.def_sig, summary.server)
+        );
+    };
+
+    const handleCardClick = (e) => {
+        if (isAdmin && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleCheck(summary, !isChecked);
+        } else {
+            if (onClick) onClick(e);
+        }
+    };
+
     return (
         <div
-            className={`arena-card flex flex-col items-start p-0 transition-all duration-200 cursor-pointer ${
-                isSelected ? "selected-highlight" : ""
-            }`}
-            onClick={onClick}
+            onClick={handleCardClick}
+            className={`arena-card flex flex-col items-start p-0 transition-all duration-200 cursor-pointer relative group/card select-none
+                ${
+                    isChecked
+                        ? "ring-2 ring-red-500 bg-red-50/50"
+                        : isSelected
+                        ? "selected-highlight"
+                        : ""
+                }
+            `}
+            title={
+                isAdmin ? "Hold Ctrl + Click to select for batch delete" : ""
+            }
         >
+            {isAdmin && (
+                <button
+                    onClick={handleDeleteClick}
+                    className="absolute top-2 right-2 z-20 p-1.5 bg-white/90 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full shadow-sm border border-gray-200 opacity-0 group-hover/card:opacity-100 transition-all duration-200"
+                    title="Delete Summary"
+                >
+                    <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                    </svg>
+                </button>
+            )}
+
             <div className="flex items-center w-full px-5 py-3">
                 <div className="team-display-container">
                     <TeamAvatars teamIds={summary.attackingTeam} />

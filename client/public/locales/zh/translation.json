@@ -25,11 +25,21 @@
         "go": "跳转",
         "page": "页码",
         "cancel": "取消",
-        "confirm": "确认"
+        "confirm": "确认",
+        "logout": "退出登录",
+        "login": "登录",
+        "delete_success": "删除成功",
+        "delete_confirm": "确认删除"
     },
     "settings": {
         "title": "数据管理",
         "description": "导入和管理数据",
+        "review_panel": {
+            "title": "管理员审核面板",
+            "empty": "暂无待审核请求",
+            "approve": "批准",
+            "reject": "拒绝"
+        },
         "import_section": {
             "title": "导入数据",
             "desc": "上传 JSON 文件以批量导入历史战绩。",
@@ -69,7 +79,13 @@
             "server": "服务器",
             "server_global": "国际服",
             "server_cn": "国服",
-            "server_jp": "日服"
+            "server_jp": "日服",
+            "submit_request": "提交审核",
+            "proof": "证明截图",
+            "note": "备注 / 说明",
+            "optional": "(可选)",
+            "status_submitting": "提交中...",
+            "status_submitted": "请求已提交！等待管理员审核。"
         }
     },
     "arena": {
@@ -129,10 +145,20 @@
             "placeholder_name": "昵称",
             "placeholder": "记录翻车点、站位细节或RNG因素...",
             "submit": "发布",
+            "post_success": "评论已发布",
             "no_comments": "暂无笔记",
             "reply": "回复",
             "cancel": "取消",
             "delete_confirm": "删除这条评论及其回复？"
+        },
+        "delete_warning": "确定要删除这条记录吗？此操作无法撤销。",
+        "batch": {
+            "selected": "已选",
+            "select_page": "全选本页",
+            "deselect_page": "取消全选",
+            "delete_selected": "删除选中项",
+            "confirm_title": "批量删除",
+            "confirm_msg": "确定要删除 {{count}} 条记录吗？此操作无法撤销。"
         }
     }
 }

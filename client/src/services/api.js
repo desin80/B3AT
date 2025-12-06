@@ -1,4 +1,10 @@
-const API_BASE = "http://localhost:8000/api";
+const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+
+const getAuthHeaders = () => {
+    const token = localStorage.getItem("b3at_admin_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 const api = {
     checkHealth: async () => {
@@ -9,6 +15,19 @@ const api = {
             console.warn("Backend not reachable", e);
             return false;
         }
+    },
+
+    login: async (username, password) => {
+        const formData = new FormData();
+        formData.append("username", username);
+        formData.append("password", password);
+
+        const res = await fetch(`${API_BASE}/token`, {
+            method: "POST",
+            body: formData,
+        });
+        if (!res.ok) throw new Error("Login failed");
+        return await res.json();
     },
 
     getBattles: async (page = 1, filters = {}) => {
@@ -113,13 +132,28 @@ const api = {
     deleteArenaSummary: async (atkSig, defSig, server = "global") => {
         const res = await fetch(`${API_BASE}/summaries/delete`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ atk_sig: atkSig, def_sig: defSig }),
+            headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+            },
+            body: JSON.stringify({ atk_sig: atkSig, def_sig: defSig, server }),
         });
-        if (!res.ok) throw new Error("Delete failed");
+        if (!res.ok) throw new Error("Delete failed (Auth required?)");
         return await res.json();
     },
-
+    batchDeleteSummaries: async (items) => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/summaries/batch_delete`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...headers,
+            },
+            body: JSON.stringify({ items }),
+        });
+        if (!res.ok) throw new Error("Batch delete failed");
+        return await res.json();
+    },
     getSeasons: async (server = null) => {
         try {
             let url = `${API_BASE}/seasons`;
@@ -172,10 +206,12 @@ const api = {
     deleteComment: async (id) => {
         const res = await fetch(`${API_BASE}/comments/${id}`, {
             method: "DELETE",
+            headers: { ...getAuthHeaders() },
         });
-        if (!res.ok) throw new Error("Failed to delete");
+        if (!res.ok) throw new Error("Failed to delete (Auth required?)");
         return await res.json();
     },
+
     manualAddRecord: async (payload) => {
         // payload: { season, tag, atk_team, def_team, wins, losses }
         const res = await fetch(`${API_BASE}/manual_add`, {

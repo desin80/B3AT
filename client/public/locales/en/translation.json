@@ -29,11 +29,21 @@
         "go": "Go",
         "page": "Page",
         "cancel": "Cancel",
-        "confirm": "Confirm"
+        "confirm": "Confirm",
+        "logout": "Logout",
+        "login": "Login",
+        "delete_success": "Deleted successfully",
+        "delete_confirm": "Delete Record"
     },
     "settings": {
         "title": "Data Management",
         "description": "Import and Manage Data",
+        "review_panel": {
+            "title": "Admin Review Panel",
+            "empty": "No pending submissions.",
+            "approve": "Approve",
+            "reject": "Reject"
+        },
         "import_section": {
             "title": "Import Data",
             "desc": "Upload a JSON file to bulk import battle history.",
@@ -73,7 +83,13 @@
             "server": "Server",
             "server_global": "Global",
             "server_cn": "China",
-            "server_jp": "Japan"
+            "server_jp": "Japan",
+            "submit_request": "Submit for Approval",
+            "proof": "Proof Screenshot",
+            "note": "Note / Comment",
+            "optional": "(Optional)",
+            "status_submitting": "Submitting...",
+            "status_submitted": "Request submitted! Waiting for approval."
         }
     },
     "arena": {
@@ -131,11 +147,21 @@
             "title": "Tactical Notes",
             "placeholder_name": "Name",
             "placeholder": "Add notes about RNG, positioning, or why it failed...",
+            "post_success": "Comment posted",
             "submit": "Post",
             "no_comments": "No notes yet",
             "reply": "Reply",
             "cancel": "Cancel",
             "delete_confirm": "Delete this comment and its replies?"
+        },
+        "delete_warning": "Are you sure you want to delete this record? This action cannot be undone.",
+        "batch": {
+            "selected": "Selected",
+            "select_page": "Select Page",
+            "deselect_page": "Deselect Page",
+            "delete_selected": "Delete Selected",
+            "confirm_title": "Batch Delete",
+            "confirm_msg": "Are you sure you want to delete {{count}} records? This action cannot be undone."
         }
     }
 }

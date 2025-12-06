@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import time
 from ..database import get_db_connection
 from ..models import CommentRequest
 from ..utils import normalize_to_smart_sig
+from .auth import get_current_admin
 
 router = APIRouter()
 
@@ -61,7 +62,7 @@ def add_comment(req: CommentRequest):
 
 
 @router.delete("/api/comments/{comment_id}")
-def delete_comment(comment_id: int):
+def delete_comment(comment_id: int, admin: str = Depends(get_current_admin)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(

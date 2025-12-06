@@ -18,6 +18,10 @@ class DeleteSummaryModel(BaseModel):
     def_sig: str
 
 
+class BatchDeleteRequest(BaseModel):
+    items: List[DeleteSummaryModel]
+
+
 class ManualAddRequest(BaseModel):
     server: str = "global"
     season: int
