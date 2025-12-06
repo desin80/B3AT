@@ -9,14 +9,18 @@
 
 ---
 
-**B3AT** 是一个为《蔚蓝档案》(Blue Archive) 玩家制作的竞技场（PVP）战绩记录与分析工具
+**B3AT** 是一个为《蔚蓝档案》(Blue Archive) 玩家制作的竞技场（PVP）战绩记录与分析工具。
 
 ---
 
-> ### 重要提醒
+> ### 关于权限与安全
 >
-> 本项目目前**未包含**任何数据审核或用户权限管理系统。这意味着**任何人**都可以上传数据或手动录入战绩。
-> 如果您计划在公共网络环境部署此服务，请务必注意数据污染风险。
+> 本分支已集成管理系统。
+>
+> -   **普通用户**：可以浏览数据、使用筛选器，手动录入战绩时需要**提交审核**（支持上传截图证明），无法直接修改数据库。
+> -   **管理员**：登录后拥有最高权限，包括审核用户提交的请求、直接导入/删除数据、批量管理等。
+>
+> 默认情况下，系统运行在单用户管理员模式，账号密码在环境变量中配置。
 
 ---
 
@@ -24,24 +28,25 @@
 
 ### 1. 战局分析 (Battle Analysis)
 
-提供多维度的统计数据，包含胜率、样本数、后验均值与置信下界。
+提供多维度的统计数据，包含胜率、样本数、后验均值与 Wilson 置信下界。支持 **Ctrl + 单击** 多选卡片进行批量操作（仅限管理员）。
 ![Arena Analysis Screenshot](./screenshots/arena_main.png)
 
 ### 2. 筛选系统 (Filtering)
 
 -   **数值筛选**: 按最低胜率、最小场次筛选。
--   **阵容筛选**: 例：筛选“防守方后排 2 号位必须是某角色”的特定对局。
+-   **阵容筛选**: 支持指定攻守方特定位置的角色（例如：筛选“防守方 4 号位是瞬”的对局）。
     ![Filter System Screenshot](./screenshots/filter_panel.png)
 
-### 3. 战术笔记 (Tactical Notes)
+### 3. 数据审核系统 (Submission & Review)
 
-轻量级的评论系统，无需登录即可使用。
-![Comments System Screenshot](./screenshots/comments.png)
+-   **提交请求**: 普通用户可以提交战绩，支持附带证明截图和备注说明。
+-   **审核面板**: 管理员在后台查看待办请求，批准入库或拒绝。
+    ![Review Panel Screenshot](./screenshots/review_panel.png)
 
-### 4. 数据导入 (Data Management)
+### 4. 数据管理 (Data Management)
 
--   **批量导入**: 支持 JSON 格式的历史战绩批量导入，示例见末尾。
--   **手动录入**: 提供手动录入面板，您可以预设攻守阵容，胜负场次。
+-   **批量导入**: 支持 JSON 格式的历史战绩批量导入（仅限管理员）。
+-   **战术笔记**: 轻量级的评论系统，记录 RNG 因素或作业细节。
     ![Manual Entry Screenshot](./screenshots/settings_manual.png)
 
 ---
@@ -53,46 +58,65 @@
 -   Node.js (v18+)
 -   Python (v3.11+)
 
-### 1. 启动后端
+### 1. 后端配置与启动 (Server)
+
+在 `server` 目录下，除了安装依赖，你需要创建一个 `.env` 配置文件来设置管理员账号。
 
 ```bash
 cd server
 
-# 创建虚拟环境
+# 1. 创建虚拟环境并激活
 python -m venv venv
-
-# 激活环境
 # Windows:
 .\venv\Scripts\activate
 # Mac/Linux:
 source venv/bin/activate
 
-# 安装依赖
+# 2. 安装依赖
 pip install -r requirements.txt
 
-# 启动服务 (默认运行在 http://localhost:8000)
+# 3. 创建配置文件 .env
+# 复制以下内容到 server/.env 文件中:
+# -------------------------
+# API_PORT=8000
+# FRONTEND_URL=http://localhost:5173
+# SECRET_KEY=请修改为一个复杂的随机字符串
+# ADMIN_USERNAME=sensei
+# ADMIN_PASSWORD=arona
+# -------------------------
+
+# 4. 启动服务
 python main.py
 ```
 
-### 2. 启动前端
+### 2. 前端配置与启动 (Client)
+
+在 `client` 目录下，同样需要配置 API 地址。
 
 ```bash
 cd client
 
-# 安装依赖
+# 1. 安装依赖
 npm install
 
-# 启动开发服务器 (默认运行在 http://localhost:5173)
+# 2. 创建配置文件 .env
+# 复制以下内容到 client/.env 文件中:
+# -------------------------
+# VITE_API_BASE_URL=http://localhost:8000/api
+# -------------------------
+
+# 3. 启动开发服务器
 npm run dev
 ```
 
-打开浏览器访问 `http://localhost:5173` 即可开始使用
+打开浏览器访问 `http://localhost:5173`。
+直接访问 `/login` 进行管理员登录（默认账号：`sensei` / `arona`）。
 
 ---
 
 ## JSON 数据示例 (Data Format)
 
-批量上传的文件必须为 **JSON 数组** 格式（即使只有一条数据，也需要包裹在 `[]` 中）。
+批量上传（仅管理员可用）的文件必须为 **JSON 数组** 格式。
 
 ```json
 [
