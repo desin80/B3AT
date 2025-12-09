@@ -15,8 +15,10 @@
 
 > ### 重要提醒
 >
-> 本项目目前**未包含**任何数据审核或用户权限管理系统。这意味着**任何人**都可以上传数据或手动录入战绩。
+> 本项目目前**未包含**任何数据审核或用户权限管理系统。这意味着 **任何人** 都可以上传数据或手动录入战绩。
 > 如果您计划在公共网络环境部署此服务，请务必注意数据污染风险。
+>
+> **若需要使用带有管理系统与新版数据库的版本，请前往 admin 分支：** > [https://github.com/desin80/B3AT/tree/admin](https://github.com/desin80/B3AT/tree/admin)
 
 ---
 
@@ -25,24 +27,28 @@
 ### 1. 战局分析 (Battle Analysis)
 
 提供多维度的统计数据，包含胜率、样本数、后验均值与置信下界。
+
 ![Arena Analysis Screenshot](./screenshots/arena_main.png)
 
 ### 2. 筛选系统 (Filtering)
 
--   **数值筛选**: 按最低胜率、最小场次筛选。
--   **阵容筛选**: 例：筛选“防守方后排 2 号位必须是某角色”的特定对局。
-    ![Filter System Screenshot](./screenshots/filter_panel.png)
+-   **数值筛选**：按最低胜率、最小场次筛选。
+-   **阵容筛选**：例如筛选「防守方后排 2 号位必须是某角色」的特定对局。
+
+![Filter System Screenshot](./screenshots/filter_panel.png)
 
 ### 3. 战术笔记 (Tactical Notes)
 
-轻量级的评论系统，无需登录即可使用。
+轻量级评论系统，无需登录即可使用。
+
 ![Comments System Screenshot](./screenshots/comments.png)
 
 ### 4. 数据导入 (Data Management)
 
--   **批量导入**: 支持 JSON 格式的历史战绩批量导入，示例见末尾。
--   **手动录入**: 提供手动录入面板，您可以预设攻守阵容，胜负场次。
-    ![Manual Entry Screenshot](./screenshots/settings_manual.png)
+-   **批量导入**：支持 JSON 格式的历史战绩批量导入，示例见末尾。
+-   **手动录入**：提供手动录入面板，可预设攻守阵容及胜负场次。
+
+![Manual Entry Screenshot](./screenshots/settings_manual.png)
 
 ---
 
@@ -57,20 +63,17 @@
 
 ```bash
 cd server
-
 # 创建虚拟环境
 python -m venv venv
 
 # 激活环境
-# Windows:
-.\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
+# Windows: .\\venv\\Scripts\\activate
+# Mac/Linux: source venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
 
-# 启动服务 (默认运行在 http://localhost:8000)
+# 启动服务 (默认 http://localhost:8000)
 python main.py
 ```
 
@@ -78,21 +81,20 @@ python main.py
 
 ```bash
 cd client
-
 # 安装依赖
 npm install
 
-# 启动开发服务器 (默认运行在 http://localhost:5173)
+# 启动开发服务器 (默认 http://localhost:5173)
 npm run dev
 ```
 
-打开浏览器访问 `http://localhost:5173` 即可开始使用
+打开浏览器访问 `http://localhost:5173` 即可开始使用。
 
 ---
 
 ## JSON 数据示例 (Data Format)
 
-批量上传的文件必须为 **JSON 数组** 格式（即使只有一条数据，也需要包裹在 `[]` 中）。
+批量上传文件必须为 **JSON 数组** 格式（即使只有一条数据，也需使用 `[]` 包裹）。
 
 ```json
 [
@@ -116,18 +118,18 @@ npm run dev
 ]
 ```
 
-### 字段详细说明
+### 字段说明
 
-| 字段名 (Field)       | 类型 (Type)  | 说明 (Description)                             |
-| :------------------- | :----------- | :--------------------------------------------- |
-| **Win**              | Boolean      | `true` 为进攻胜利，`false` 为失败              |
-| **AttackingTeamIds** | Array\<Int\> | 进攻方学生 ID 列表                             |
-| **DefendingTeamIds** | Array\<Int\> | 防守方学生 ID 列表                             |
-| **Server**           | String       | 服务器 (如 `global`, `japan`)，默认为 `global` |
-| **Season**           | Integer      | 赛季编号，默认为 `9`                           |
-| **Tag**              | String       | 自定义标签 (如压攻)                            |
-| **Time**             | String       | 战斗时间 (ISO 8601 格式)，不填则默认为上传时间 |
+| 字段名               | 类型       | 描述                                          |
+| -------------------- | ---------- | --------------------------------------------- |
+| **Win**              | Boolean    | `true` 进攻胜利；`false` 失败                 |
+| **AttackingTeamIds** | Array<Int> | 进攻方学生 ID                                 |
+| **DefendingTeamIds** | Array<Int> | 防守方学生 ID                                 |
+| **Server**           | String     | 服务器 (`global`, `japan`)，默认 `global`     |
+| **Season**           | Integer    | 赛季编号，默认 `9`                            |
+| **Tag**              | String     | 自定义标签，如压攻                            |
+| **Time**             | String     | 战斗时间（ISO 8601 格式），不填则使用上传时间 |
 
 ---
 
-> **致谢**: 学生数据与头像资源来自 [SchaleDB](https://schaledb.com/)。
+**致谢**：学生数据与头像资源来自 [SchaleDB](https://schaledb.com/)。

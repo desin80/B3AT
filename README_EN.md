@@ -17,6 +17,8 @@
 >
 > This project currently does **NOT** include any data moderation or user authentication system. This means **anyone** can upload data or manually add battle records.
 > If you plan to deploy this service in a public environment, please be aware of the risk of data pollution.
+>
+> **If you need the version with an admin system and the new database, please visit the admin branch:** > [https://github.com/desin80/B3AT/tree/admin](https://github.com/desin80/B3AT/tree/admin)
 
 ---
 
@@ -30,7 +32,7 @@ Provides multi-dimensional statistical data, including win rates, sample sizes, 
 ### 2. Filtering System
 
 -   **Numeric Filtering**: Filter by minimum win rate and minimum match count.
--   **Lineup Filtering**: E.g., Filter for specific matches where "The defender's backline position 2 must be a specific character".
+-   **Lineup Filtering**: e.g., filter for matches where "The defender's backline position 2 must be a specific character".
     ![Filter System Screenshot](./screenshots/filter_panel.png)
 
 ### 3. Tactical Notes
@@ -63,7 +65,7 @@ python -m venv venv
 
 # Activate environment
 # Windows:
-.\venv\Scripts\activate
+.\\venv\\Scripts\\activate
 # Mac/Linux:
 source venv/bin/activate
 
@@ -118,16 +120,16 @@ Files for batch upload must be in **JSON Array** format (even if containing only
 
 ### Field Details
 
-| Field                | Type         | Description                                                        |
-| :------------------- | :----------- | :----------------------------------------------------------------- |
-| **Win**              | Boolean      | `true` indicates a win for the attacker, `false` indicates a loss. |
-| **AttackingTeamIds** | Array\<Int\> | List of Student IDs for the attacking team.                        |
-| **DefendingTeamIds** | Array\<Int\> | List of Student IDs for the defending team.                        |
-| **Server**           | String       | Server name (e.g., `global`, `japan`). Defaults to `global`.       |
-| **Season**           | Integer      | Arena season number. Defaults to `9`.                              |
-| **Tag**              | String       | Custom tag (e.g., strategy notes, rank).                           |
-| **Time**             | String       | Battle time (ISO 8601 format). Defaults to upload time if omitted. |
+| Field                | Type       | Description                                                |
+| -------------------- | ---------- | ---------------------------------------------------------- |
+| **Win**              | Boolean    | `true` = attacker win, `false` = loss                      |
+| **AttackingTeamIds** | Array<Int> | Student IDs of attacking team                              |
+| **DefendingTeamIds** | Array<Int> | Student IDs of defending team                              |
+| **Server**           | String     | Server name (`global`, `japan`), default `global`          |
+| **Season**           | Integer    | Season number, default `9`                                 |
+| **Tag**              | String     | Custom tag (e.g., strategy note)                           |
+| **Time**             | String     | Battle time (ISO 8601), defaults to upload time if omitted |
 
 ---
 
-> **Credits**: Student data and avatar resources are from [SchaleDB](https://schaledb.com/).
+**Credits**: Student data and avatar resources are from [SchaleDB](https://schaledb.com/).
