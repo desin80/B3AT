@@ -5,7 +5,7 @@ from .utils import wilson_lower_bound, posterior_mean, generate_signatures
 
 def batch_upsert_stats(conn, updates_list):
     """
-    updates_list: list of dicts
+    updates_list:
     {
         'server': str, 'season': int, 'tag': str,
         'atk_team': list, 'def_team': list,
@@ -52,50 +52,66 @@ def batch_upsert_stats(conn, updates_list):
 
             new_total = current_total + total_delta
             new_wins = current_wins + wins_delta
-            new_last_seen = max(current_last_seen, timestamp)
+            new_last_seen = (
+                max(current_last_seen, timestamp)
+                if total_delta > 0
+                else current_last_seen
+            )
         else:
             new_total = total_delta
             new_wins = wins_delta
             new_last_seen = timestamp
-        if new_total < 0:
-            new_total = 0
-        if new_wins < 0:
-            new_wins = 0
 
-        w_score = wilson_lower_bound(new_wins, new_total)
-        p_mean = posterior_mean(new_wins, new_total)
+        if new_total <= 0:
+            cursor.execute(
+                """
+                DELETE FROM arena_stats
+                WHERE server=? AND season=? AND tag=?
+                  AND atk_strict_sig=? AND def_strict_sig=?
+            """,
+                (server, season, tag, atk_strict, def_strict),
+            )
+        else:
+            if new_wins < 0:
+                new_wins = 0
+            if new_wins > new_total:
+                new_wins = new_total
 
-        atk_json = json.dumps(atk_team)
-        def_json = json.dumps(def_team)
+            w_score = wilson_lower_bound(new_wins, new_total)
+            p_mean = posterior_mean(new_wins, new_total)
 
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO arena_stats (
-                server, season, tag,
-                atk_strict_sig, def_strict_sig,
-                atk_smart_sig, def_smart_sig,
-                atk_team_json, def_team_json,
-                total_battles, total_wins, last_seen,
-                wilson_score, avg_win_rate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                server,
-                season,
-                tag,
-                atk_strict,
-                def_strict,
-                atk_smart,
-                def_smart,
-                atk_json,
-                def_json,
-                new_total,
-                new_wins,
-                new_last_seen,
-                w_score,
-                p_mean,
-            ),
-        )
+            atk_json = json.dumps(atk_team)
+            def_json = json.dumps(def_team)
+
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO arena_stats (
+                    server, season, tag,
+                    atk_strict_sig, def_strict_sig,
+                    atk_smart_sig, def_smart_sig,
+                    atk_team_json, def_team_json,
+                    total_battles, total_wins, last_seen,
+                    wilson_score, avg_win_rate
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    server,
+                    season,
+                    tag,
+                    atk_strict,
+                    def_strict,
+                    atk_smart,
+                    def_smart,
+                    atk_json,
+                    def_json,
+                    new_total,
+                    new_wins,
+                    new_last_seen,
+                    w_score,
+                    p_mean,
+                ),
+            )
+
         count += 1
 
     conn.commit()

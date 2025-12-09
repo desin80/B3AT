@@ -39,10 +39,21 @@
             "empty": "暂无待审核请求",
             "approve": "批准",
             "reject": "拒绝",
+            "status_approved": "已通过",
+            "status_rejected": "已拒绝",
+            "status_pending": "待审核",
             "confirm_approve": "确定要批准此请求吗？这将向数据库添加 {{count}} 条记录。",
             "confirm_reject": "确定要拒绝此请求吗？",
             "approved_success": "已批准并合并数据",
-            "rejected_success": "已拒绝该请求"
+            "rejected_success": "已拒绝该请求",
+            "tab_pending": "待审核数据",
+            "tab_history": "历史记录",
+            "history_empty": "暂无历史记录",
+            "revert": "撤销",
+            "revert_title": "撤销提交",
+            "revert_confirm": "这将撤销该请求所做的统计更改，并将请求状态改回“待审核”。确定要继续吗？",
+            "revert_success": "撤销成功",
+            "revert_confirm_rejected": "这将把被拒绝的请求状态改回“待审核”。确定要继续吗？"
         },
         "import_section": {
             "title": "导入数据",
