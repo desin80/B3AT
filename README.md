@@ -18,7 +18,7 @@
 > 本项目目前**未包含**任何数据审核或用户权限管理系统。这意味着 **任何人** 都可以上传数据或手动录入战绩。
 > 如果您计划在公共网络环境部署此服务，请务必注意数据污染风险。
 >
-> **若需要使用带有管理系统与新版数据库的版本，请前往 admin 分支：** > [https://github.com/desin80/B3AT/tree/admin](https://github.com/desin80/B3AT/tree/admin)
+> **若需要使用带有管理系统与新版数据库的版本，请前往 [admin 分支](https://github.com/desin80/B3AT/tree/admin)**
 
 ---
 

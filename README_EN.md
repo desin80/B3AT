@@ -18,7 +18,7 @@
 > This project currently does **NOT** include any data moderation or user authentication system. This means **anyone** can upload data or manually add battle records.
 > If you plan to deploy this service in a public environment, please be aware of the risk of data pollution.
 >
-> **If you need the version with an admin system and the new database, please visit the admin branch:** > [https://github.com/desin80/B3AT/tree/admin](https://github.com/desin80/B3AT/tree/admin)
+> **If you need the version with an admin system and the new database, please visit the [admin branch](https://github.com/desin80/B3AT/tree/admin)**
 
 ---
 
