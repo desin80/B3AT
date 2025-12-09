@@ -243,6 +243,22 @@ const api = {
         if (!res.ok) throw new Error("Rejection failed");
         return await res.json();
     },
+    getSubmissionHistory: async () => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/submissions/history`, { headers });
+        if (!res.ok) throw new Error("Failed to fetch history");
+        return await res.json();
+    },
+
+    revertSubmission: async (id) => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/submissions/${id}/revert`, {
+            method: "POST",
+            headers,
+        });
+        if (!res.ok) throw new Error("Revert failed");
+        return await res.json();
+    },
 };
 
 export default api;

@@ -42,7 +42,22 @@
             "title": "Review Panel",
             "empty": "No pending submissions.",
             "approve": "Approve",
-            "reject": "Reject"
+            "reject": "Reject",
+            "status_approved": "Approved",
+            "status_rejected": "Rejected",
+            "status_pending": "Pending",
+            "confirm_approve": "Are you sure you want to approve this submission? This will add {{count}} records to the database.",
+            "confirm_reject": "Are you sure you want to reject this submission?",
+            "approved_success": "Approved and merged data",
+            "rejected_success": "Rejected the submission",
+            "tab_pending": "Pending Reviews",
+            "tab_history": "History Log",
+            "history_empty": "No history found.",
+            "revert": "Revert",
+            "revert_title": "Revert Submission",
+            "revert_confirm": "This will revert the stats change and move the request back to 'Pending'. Are you sure?",
+            "revert_success": "Reverted successfully",
+            "revert_confirm_rejected": "This will move the rejected request back to 'Pending'. Are you sure?"
         },
         "import_section": {
             "title": "Import Data",

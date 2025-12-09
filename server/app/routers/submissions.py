@@ -163,3 +163,79 @@ def reject_submission(sub_id: int, admin: str = Depends(get_current_admin)):
     conn.commit()
     conn.close()
     return {"message": "Rejected"}
+
+
+@router.get("/api/submissions/history")
+def get_submission_history(limit: int = 50, admin: str = Depends(get_current_admin)):
+    conn = get_db_connection()
+    conn.row_factory = None
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT * FROM submissions 
+        WHERE status != 'pending' 
+        ORDER BY created_at DESC 
+        LIMIT ?
+        """,
+        (limit,),
+    )
+    columns = [column[0] for column in cursor.description]
+    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    for r in results:
+        r["atk_team"] = json.loads(r["atk_team_json"])
+        r["def_team"] = json.loads(r["def_team_json"])
+
+    conn.close()
+    return results
+
+
+@router.post("/api/submissions/{sub_id}/revert")
+def revert_submission(sub_id: int, admin: str = Depends(get_current_admin)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT * FROM submissions WHERE id = ?", (sub_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Submission not found")
+
+        data = dict(row)
+        current_status = data["status"]
+
+        if current_status == "pending":
+            raise HTTPException(
+                status_code=400, detail="Cannot revert a pending submission"
+            )
+
+        if current_status == "approved":
+            now = int(time.time())
+            atk_team = json.loads(data["atk_team_json"])
+            def_team = json.loads(data["def_team_json"])
+
+            update_item = {
+                "server": data["server"],
+                "season": data["season"],
+                "tag": data["tag"],
+                "atk_team": atk_team,
+                "def_team": def_team,
+                "wins_delta": -data["wins"],
+                "losses_delta": -data["losses"],
+                "timestamp": now,
+            }
+
+            batch_upsert_stats(conn, [update_item])
+
+        cursor.execute(
+            "UPDATE submissions SET status = 'pending' WHERE id = ?", (sub_id,)
+        )
+        conn.commit()
+
+        return {"message": "Submission reverted to pending status"}
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
