@@ -5,9 +5,7 @@ import time
 from datetime import datetime
 from ..database import get_db_connection
 from ..models import ManualAddRequest, DeleteSummaryModel, BatchDeleteRequest
-from ..config import MAX_MANUAL_COUNT
-from ..crud import get_filtered_summaries, batch_upsert_stats
-from ..utils import wilson_lower_bound
+from ..crud import get_filtered_summaries, batch_upsert_stats, generate_signatures
 from .auth import get_current_admin
 
 router = APIRouter()
@@ -26,7 +24,6 @@ def get_summaries(
     def_contains: Optional[str] = None,
     atk_slots: Optional[str] = None,
     def_slots: Optional[str] = None,
-    ignore_specials: bool = False,
     tag: Optional[str] = None,
 ):
     rows, total_count = get_filtered_summaries(
@@ -41,28 +38,11 @@ def get_summaries(
         def_contains,
         atk_slots,
         def_slots,
-        ignore_specials,
         tag,
     )
 
     results = []
-
-    def calc_wilson(w, n):
-        if n == 0:
-            return 0
-        return wilson_lower_bound(w, n)
-
     for row in rows:
-        total = row["total"]
-        wins = row["wins"]
-
-        if ignore_specials:
-            wilson = calc_wilson(wins, total)
-            avg_wr = (wins + 1) / (total + 2)
-        else:
-            wilson = row["wilson_score"]
-            avg_wr = row["avg_win_rate"]
-
         results.append(
             {
                 "server": row["server"],
@@ -70,12 +50,12 @@ def get_summaries(
                 "tag": row["tag"],
                 "attackingTeam": json.loads(row["atk_json"]),
                 "defendingTeam": json.loads(row["def_json"]),
-                "total": total,
-                "wins": wins,
-                "losses": total - wins,
-                "winRate": wins / total if total > 0 else 0,
-                "wilsonScore": wilson,
-                "avgWinRate": avg_wr,
+                "total": row["total"],
+                "wins": row["wins"],
+                "losses": row["total"] - row["wins"],
+                "winRate": row["wins"] / row["total"] if row["total"] > 0 else 0,
+                "wilsonScore": row["wilson_score"],
+                "avgWinRate": row["avg_win_rate"],
                 "lastSeen": row["last_time"],
                 "atk_sig": row["atk_sig"],
                 "def_sig": row["def_sig"],
@@ -191,8 +171,11 @@ async def upload_json(
             else:
                 timestamp = int(time.time())
 
-            atk_key = tuple(atk_team)
-            def_key = tuple(def_team)
+            atk_sorted, _ = generate_signatures(atk)
+            def_sorted, _ = generate_signatures(def_team)
+
+            atk_key = tuple(atk_sorted)
+            def_key = tuple(def_sorted)
 
             key = (server, season, tag, atk_key, def_key)
 
