@@ -5,11 +5,12 @@ import ArenaSummaryCard from "../components/ArenaSummaryCard";
 import Pagination from "../components/Pagination";
 import ArenaFilterPanel from "../components/ArenaFilterPanel";
 import StudentSelectorModal from "../components/StudentSelectorModal";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useAuth } from "../context/AuthContext";
 import { useUI } from "../context/UIContext";
 import "./ArenaPage.css";
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 30;
 
 const ArenaPage = () => {
     const { t, i18n } = useTranslation();
@@ -31,6 +32,7 @@ const ArenaPage = () => {
     const [modalFilterType, setModalFilterType] = useState("all");
     const [server, setServer] = useState("all");
     const [selectedSet, setSelectedSet] = useState(new Set());
+    const [showScrollTop, setShowScrollTop] = useState(false);
 
     const getItemKey = (item) =>
         `${item.server}|${item.season}|${item.atk_sig}|${item.def_sig}|${
@@ -79,9 +81,28 @@ const ArenaPage = () => {
 
     useEffect(() => {
         setSelectedSet(new Set());
-
         fetchData();
     }, [page, season, sort, filters, server]);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 300) {
+                setShowScrollTop(true);
+            } else {
+                setShowScrollTop(false);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
+    };
 
     const handleOpenSelector = (callback, index) => {
         setSelectorCallback(() => callback);
@@ -298,27 +319,42 @@ const ArenaPage = () => {
                     onOpenSelector={handleOpenSelector}
                 />
             )}
+            {!isLoading && totalCount > 0 && (
+                <div className="mb-4">
+                    <Pagination
+                        currentPage={page}
+                        totalItems={totalCount}
+                        itemsPerPage={ITEMS_PER_PAGE}
+                        onPageChange={setPage}
+                    />
+                </div>
+            )}
             <div className="overflow-x-auto pb-4">
                 <div className="min-w-[900px] p-1">
                     {isLoading ? (
-                        <div className="text-center py-10 text-gray-500 text-lg">
-                            {t("common.loading")}
-                        </div>
+                        <LoadingSpinner />
                     ) : summaries.length === 0 ? (
-                        <div className="text-center py-10 text-gray-500 text-lg">
+                        <div className="text-center py-10 text-gray-500 text-lg animate-fade-in">
                             {t("arena.noData")}
                         </div>
                     ) : (
-                        summaries.map((item) => {
+                        summaries.map((item, index) => {
                             const key = getItemKey(item);
                             return (
-                                <ArenaSummaryCard
+                                <div
                                     key={key}
-                                    summary={item}
-                                    onDelete={handleDeleteSummary}
-                                    isChecked={selectedSet.has(key)}
-                                    onToggleCheck={handleToggleCheck}
-                                />
+                                    className="animate-card-entry"
+                                    style={{
+                                        animationDelay: `${index * 0.05}s`,
+                                    }}
+                                >
+                                    <ArenaSummaryCard
+                                        summary={item}
+                                        onDelete={handleDeleteSummary}
+                                        isChecked={selectedSet.has(key)}
+                                        onToggleCheck={handleToggleCheck}
+                                    />
+                                </div>
                             );
                         })
                     )}
@@ -332,6 +368,31 @@ const ArenaPage = () => {
                     onPageChange={setPage}
                 />
             </div>
+            <button
+                onClick={scrollToTop}
+                className={`fixed bottom-8 right-8 z-40 p-3 bg-sky-600 hover:bg-sky-700 text-white rounded-full shadow-xl transition-all duration-300 transform border border-sky-400/50 backdrop-blur-sm
+                    ${
+                        showScrollTop
+                            ? "opacity-100 translate-y-0"
+                            : "opacity-0 translate-y-10 pointer-events-none"
+                    }
+                `}
+                title={t("common.back_to_top") || "Back to Top"}
+            >
+                <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M5 10l7-7m0 0l7 7m-7-7v18"
+                    />
+                </svg>
+            </button>
             {isAdmin && selectedSet.size > 0 && (
                 <div className="fixed bottom-6 left-0 right-0 mx-auto w-[90%] max-w-2xl z-[60] animate-fade-in-up">
                     <div className="bg-gray-900/90 backdrop-blur-md text-white px-6 py-4 rounded-full shadow-2xl flex items-center justify-between border border-gray-700">
