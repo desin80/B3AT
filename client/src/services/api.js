@@ -31,26 +31,6 @@ const api = {
         return await res.json();
     },
 
-    getBattles: async (page = 1, filters = {}) => {
-        const params = new URLSearchParams();
-        params.append("page", page);
-        params.append("limit", 20);
-
-        if (filters.server) params.append("server", filters.server);
-        if (filters.season) params.append("season", filters.season);
-        if (filters.unit_id) params.append("unit_id", filters.unit_id);
-        if (filters.tag) params.append("tag", filters.tag);
-
-        try {
-            const res = await fetch(`${API_BASE}/battles?${params.toString()}`);
-            if (!res.ok) throw new Error("Network response was not ok");
-            return await res.json();
-        } catch (error) {
-            console.error("Failed to fetch battles:", error);
-            return [];
-        }
-    },
-
     uploadData: async (file, defaultServer = "global", defaultSeason = 9) => {
         const formData = new FormData();
         formData.append("file", file);
@@ -130,14 +110,20 @@ const api = {
         if (!res.ok) throw new Error("Failed to fetch summaries");
         return await res.json();
     },
-    deleteArenaSummary: async (atkSig, defSig, server = "global") => {
+    deleteArenaSummary: async (atkSig, defSig, server, season, tag = "") => {
         const res = await fetch(`${API_BASE}/summaries/delete`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 ...getAuthHeaders(),
             },
-            body: JSON.stringify({ atk_sig: atkSig, def_sig: defSig, server }),
+            body: JSON.stringify({
+                atk_sig: atkSig,
+                def_sig: defSig,
+                server,
+                season,
+                tag,
+            }),
         });
         if (!res.ok) throw new Error("Delete failed (Auth required?)");
         return await res.json();

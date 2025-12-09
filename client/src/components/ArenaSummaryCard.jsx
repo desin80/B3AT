@@ -166,7 +166,14 @@ const ArenaSummaryCard = ({
                 "arena.delete_warning",
                 "Are you sure you want to delete this record?"
             ),
-            () => onDelete(summary.atk_sig, summary.def_sig, summary.server)
+            () =>
+                onDelete(
+                    summary.atk_sig,
+                    summary.def_sig,
+                    summary.server,
+                    summary.season,
+                    summary.tag || ""
+                )
         );
     };
 

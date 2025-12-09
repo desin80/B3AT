@@ -6,7 +6,7 @@ from datetime import datetime
 from ..database import get_db_connection
 from ..models import ManualAddRequest, DeleteSummaryModel, BatchDeleteRequest
 from ..config import MAX_MANUAL_COUNT
-from ..crud import recalculate_all_stats, update_specific_stat, get_filtered_summaries
+from ..crud import get_filtered_summaries, batch_upsert_stats
 from ..utils import wilson_lower_bound
 from .auth import get_current_admin
 
@@ -110,60 +110,21 @@ def manual_add(req: ManualAddRequest):
         )
 
     conn = get_db_connection()
-    cursor = conn.cursor()
-    now = int(time.time())
-
-    atk_sig = ",".join(map(str, sorted(req.atk_team)))
-    def_sig = ",".join(map(str, sorted(req.def_team)))
-    atk_json = json.dumps(req.atk_team)
-    def_json = json.dumps(req.def_team)
-
     try:
-        records_to_add = []
-        for _ in range(req.wins):
-            records_to_add.append(
-                (
-                    req.server,
-                    req.season,
-                    req.tag,
-                    now,
-                    1,
-                    atk_sig,
-                    def_sig,
-                    atk_json,
-                    def_json,
-                )
-            )
-        for _ in range(req.losses):
-            records_to_add.append(
-                (
-                    req.server,
-                    req.season,
-                    req.tag,
-                    now,
-                    0,
-                    atk_sig,
-                    def_sig,
-                    atk_json,
-                    def_json,
-                )
-            )
-
-        if records_to_add:
-            cursor.executemany(
-                """
-                INSERT INTO battles (server, season, tag, timestamp, is_win, atk_team_sig, def_team_sig, atk_team_json, def_team_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                records_to_add,
-            )
-            conn.commit()
-
-        update_specific_stat(conn, req.server, req.atk_team, req.def_team, req.tag)
-
-        return {
-            "message": f"Added {len(records_to_add)} records to server '{req.server}'. Stats incrementally updated."
+        now = int(time.time())
+        update_item = {
+            "server": req.server,
+            "season": req.season,
+            "tag": req.tag,
+            "atk_team": req.atk_team,
+            "def_team": req.def_team,
+            "wins_delta": req.wins,
+            "losses_delta": req.losses,
+            "timestamp": now,
         }
+
+        batch_upsert_stats(conn, [update_item])
+        return {"message": "Stats updated successfully."}
 
     except Exception as e:
         conn.rollback()
@@ -186,70 +147,75 @@ async def upload_json(
                 status_code=400, detail="JSON must be a list of records"
             )
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        aggregation = {}
 
-        try:
-            insert_list = []
-            for row in data:
-                server = row.get("Server", default_server).lower()
-                season = row.get("Season", default_season)
+        for row in data:
+            server = row.get("Server", default_server).lower()
+            season = row.get("Season", default_season)
+            tag = row.get("Tag", "")
 
-                is_win = 1 if row.get("Win") else 0
-                tag = row.get("Tag", "")
+            atk_team = row.get("AttackingTeamIds", [])
+            def_team = row.get("DefendingTeamIds", [])
 
-                atk_team = row.get("AttackingTeamIds", [])
-                def_team = row.get("DefendingTeamIds", [])
+            if not atk_team or not def_team:
+                continue
 
-                if not atk_team or not def_team:
-                    continue
+            is_win = 1 if row.get("Win") else 0
 
-                time_str = row.get("Time")
-                if time_str:
-                    try:
-                        dt = datetime.fromisoformat(time_str)
-                        timestamp = int(dt.timestamp())
-                    except ValueError:
-                        timestamp = int(time.time())
-                else:
+            time_str = row.get("Time")
+            if time_str:
+                try:
+                    dt = datetime.fromisoformat(time_str)
+                    timestamp = int(dt.timestamp())
+                except ValueError:
                     timestamp = int(time.time())
+            else:
+                timestamp = int(time.time())
 
-                atk_sig = ",".join(map(str, sorted(atk_team)))
-                def_sig = ",".join(map(str, sorted(def_team)))
-                atk_json = json.dumps(atk_team)
-                def_json = json.dumps(def_team)
+            atk_key = tuple(atk_team)
+            def_key = tuple(def_team)
 
-                insert_list.append(
-                    (
-                        server,
-                        season,
-                        tag,
-                        timestamp,
-                        is_win,
-                        atk_sig,
-                        def_sig,
-                        atk_json,
-                        def_json,
-                    )
-                )
+            key = (server, season, tag, atk_key, def_key)
 
-            if insert_list:
-                cursor.executemany(
-                    """
-                    INSERT INTO battles (
-                        server, season, tag, timestamp, is_win, 
-                        atk_team_sig, def_team_sig, 
-                        atk_team_json, def_team_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    insert_list,
-                )
-                conn.commit()
-                stats_count = recalculate_all_stats(conn)
+            if key not in aggregation:
+                aggregation[key] = {
+                    "wins": 0,
+                    "losses": 0,
+                    "ts": 0,
+                    "atk": atk_team,
+                    "def": def_team,
+                }
 
+            agg = aggregation[key]
+            if is_win:
+                agg["wins"] += 1
+            else:
+                agg["losses"] += 1
+
+            if timestamp > agg["ts"]:
+                agg["ts"] = timestamp
+
+        updates_list = []
+        for (server, season, tag, _, _), val in aggregation.items():
+            updates_list.append(
+                {
+                    "server": server,
+                    "season": season,
+                    "tag": tag,
+                    "atk_team": val["atk"],
+                    "def_team": val["def"],
+                    "wins_delta": val["wins"],
+                    "losses_delta": val["losses"],
+                    "timestamp": val["ts"],
+                }
+            )
+
+        conn = get_db_connection()
+        try:
+            if updates_list:
+                count = batch_upsert_stats(conn, updates_list)
                 return {
-                    "message": f"Successfully imported {len(insert_list)} battles.",
-                    "stats_updated": stats_count,
+                    "message": f"Successfully processed {len(data)} records, updated/created {count} summaries."
                 }
             else:
                 return {"message": "No valid data found to import."}
@@ -274,18 +240,25 @@ def delete_summary(
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "DELETE FROM battles WHERE server = ? AND atk_team_sig = ? AND def_team_sig = ?",
-            (payload.server, payload.atk_sig, payload.def_sig),
+            """
+            DELETE FROM arena_stats 
+            WHERE server = ? 
+              AND season = ? 
+              AND tag = ? 
+              AND atk_strict_sig = ? 
+              AND def_strict_sig = ?
+            """,
+            (
+                payload.server,
+                payload.season,
+                payload.tag,
+                payload.atk_sig,
+                payload.def_sig,
+            ),
         )
         deleted_count = cursor.rowcount
-        cursor.execute(
-            "DELETE FROM arena_stats WHERE server = ? AND atk_strict_sig = ? AND def_strict_sig = ?",
-            (payload.server, payload.atk_sig, payload.def_sig),
-        )
         conn.commit()
-        return {
-            "message": f"Deleted {deleted_count} battles records and associated stats for server {payload.server}"
-        }
+        return {"message": f"Deleted {deleted_count} summary."}
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -304,18 +277,21 @@ def batch_delete_summaries(
 
         for item in payload.items:
             cursor.execute(
-                "DELETE FROM battles WHERE server = ? AND atk_team_sig = ? AND def_team_sig = ?",
-                (item.server, item.atk_sig, item.def_sig),
+                """
+                DELETE FROM arena_stats 
+                WHERE server = ? 
+                  AND season = ? 
+                  AND tag = ? 
+                  AND atk_strict_sig = ? 
+                  AND def_strict_sig = ?
+                """,
+                (item.server, item.season, item.tag, item.atk_sig, item.def_sig),
             )
-            cursor.execute(
-                "DELETE FROM arena_stats WHERE server = ? AND atk_strict_sig = ? AND def_strict_sig = ?",
-                (item.server, item.atk_sig, item.def_sig),
-            )
-            deleted_count += 1
+            deleted_count += cursor.rowcount
 
         conn.commit()
         return {
-            "message": f"Successfully processed batch delete for {deleted_count} items."
+            "message": f"Successfully processed batch delete. Removed {deleted_count} items."
         }
     except Exception as e:
         conn.rollback()

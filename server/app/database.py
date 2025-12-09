@@ -15,34 +15,6 @@ def init_db():
 
     cursor.executescript(
         """
-    CREATE TABLE IF NOT EXISTS battles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        server TEXT NOT NULL DEFAULT 'global',
-        season INTEGER NOT NULL,
-        tag TEXT DEFAULT '', 
-        timestamp INTEGER NOT NULL,
-        is_win INTEGER NOT NULL,
-        atk_team_sig TEXT NOT NULL, 
-        def_team_sig TEXT NOT NULL,
-        atk_team_json TEXT NOT NULL,
-        def_team_json TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_battles_season ON battles(season);
-    CREATE INDEX IF NOT EXISTS idx_battles_server ON battles(server);
-
-    CREATE TABLE IF NOT EXISTS battle_units (
-        unit_id INTEGER NOT NULL,
-        battle_id INTEGER NOT NULL,
-        side INTEGER NOT NULL,
-        PRIMARY KEY (unit_id, battle_id, side),
-        FOREIGN KEY(battle_id) REFERENCES battles(id) ON DELETE CASCADE
-    );
-    CREATE INDEX IF NOT EXISTS idx_bunits_battle_id ON battle_units(battle_id);
-    """
-    )
-
-    cursor.executescript(
-        """
     CREATE TABLE IF NOT EXISTS arena_stats (
         server TEXT NOT NULL DEFAULT 'global',
         season INTEGER,
@@ -69,7 +41,7 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_stats_season ON arena_stats(season);
     CREATE INDEX IF NOT EXISTS idx_stats_total ON arena_stats(total_battles);
     CREATE INDEX IF NOT EXISTS idx_wilson ON arena_stats(wilson_score);
-    CREATE INDEX IF NOT EXISTS idx_smart_sig ON arena_stats(server,season, atk_smart_sig, def_smart_sig);
+    CREATE INDEX IF NOT EXISTS idx_smart_sig ON arena_stats(server, season, tag, atk_smart_sig, def_smart_sig);
     """
     )
 
@@ -87,14 +59,6 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_comments_sigs ON comments(server, atk_sig, def_sig);
     CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
-    """
-    )
-
-    cursor.executescript(
-        """
-    CREATE INDEX IF NOT EXISTS idx_battles_atk_sig ON battles(atk_team_sig);
-    CREATE INDEX IF NOT EXISTS idx_battles_def_sig ON battles(def_team_sig);
-    CREATE INDEX IF NOT EXISTS idx_battles_matchup ON battles(atk_team_sig, def_team_sig);
     """
     )
 

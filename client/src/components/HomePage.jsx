@@ -10,10 +10,19 @@ const HomePage = () => {
 
     return (
         <div className="flex-grow flex flex-col items-center justify-center relative p-5 animate-fade-in-up">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2 font-[nexonFont]">
-                    Blue Archive PVP Analysis Tool
+            <div className="text-center mb-12 relative z-10">
+                <h2 className="text-lg md:text-xl font-bold text-sky-600 tracking-[0.2em] uppercase mb-1 font-[nexonFont]">
+                    Blue Archive
+                </h2>
+
+                <h1 className="text-4xl md:text-6xl font-black text-gray-800 font-[nexonFont] leading-tight p-2">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-blue-600 inline-block pr-2">
+                        Arena
+                    </span>{" "}
+                    Analysis Tool
                 </h1>
+
+                <div className="w-24 h-1 bg-sky-400 mx-auto mt-4 rounded-full opacity-60"></div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full px-4">
