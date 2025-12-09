@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 from ..database import get_db_connection
 from ..routers.auth import get_current_admin
-from ..crud import update_specific_stat
+from ..crud import batch_upsert_stats
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -128,51 +128,18 @@ def approve_submission(sub_id: int, admin: str = Depends(get_current_admin)):
         atk_team = json.loads(data["atk_team_json"])
         def_team = json.loads(data["def_team_json"])
 
-        clean_atk = [x for x in atk_team if x > 0]
-        clean_def = [x for x in def_team if x > 0]
-        atk_sig = ",".join(map(str, sorted(clean_atk)))
-        def_sig = ",".join(map(str, sorted(clean_def)))
+        update_item = {
+            "server": data["server"],
+            "season": data["season"],
+            "tag": data["tag"],
+            "atk_team": atk_team,
+            "def_team": def_team,
+            "wins_delta": data["wins"],
+            "losses_delta": data["losses"],
+            "timestamp": now,
+        }
 
-        records = []
-        for _ in range(data["wins"]):
-            records.append(
-                (
-                    data["server"],
-                    data["season"],
-                    data["tag"],
-                    now,
-                    1,
-                    atk_sig,
-                    def_sig,
-                    data["atk_team_json"],
-                    data["def_team_json"],
-                )
-            )
-        for _ in range(data["losses"]):
-            records.append(
-                (
-                    data["server"],
-                    data["season"],
-                    data["tag"],
-                    now,
-                    0,
-                    atk_sig,
-                    def_sig,
-                    data["atk_team_json"],
-                    data["def_team_json"],
-                )
-            )
-
-        if records:
-            cursor.executemany(
-                """
-                INSERT INTO battles (server, season, tag, timestamp, is_win, atk_team_sig, def_team_sig, atk_team_json, def_team_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                records,
-            )
-
-        update_specific_stat(conn, data["server"], atk_team, def_team, data["tag"])
+        batch_upsert_stats(conn, [update_item])
 
         cursor.execute(
             "UPDATE submissions SET status = 'approved' WHERE id = ?", (sub_id,)

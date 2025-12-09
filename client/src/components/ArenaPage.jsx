@@ -34,7 +34,9 @@ const ArenaPage = () => {
     const [selectedSet, setSelectedSet] = useState(new Set());
 
     const getItemKey = (item) =>
-        `${item.server}|${item.atk_sig}|${item.def_sig}`;
+        `${item.server}|${item.season}|${item.atk_sig}|${item.def_sig}|${
+            item.tag || ""
+        }`;
 
     useEffect(() => {
         const loadMeta = async () => {
@@ -93,9 +95,21 @@ const ArenaPage = () => {
         setIsSelectorOpen(true);
     };
 
-    const handleDeleteSummary = async (atkSig, defSig, srv) => {
+    const handleDeleteSummary = async (
+        atkSig,
+        defSig,
+        srv,
+        seasonVal,
+        tagVal
+    ) => {
         try {
-            await api.deleteArenaSummary(atkSig, defSig, srv);
+            await api.deleteArenaSummary(
+                atkSig,
+                defSig,
+                srv,
+                seasonVal,
+                tagVal
+            );
             showToast(
                 t("common.delete_success", "Deleted successfully"),
                 "success"
@@ -141,8 +155,20 @@ const ArenaPage = () => {
             async () => {
                 try {
                     const itemsToDelete = Array.from(selectedSet).map((key) => {
-                        const [srv, atk, def] = key.split("|");
-                        return { server: srv, atk_sig: atk, def_sig: def };
+                        const parts = key.split("|");
+                        const srv = parts[0];
+                        const seasonStr = parts[1];
+                        const atk = parts[2];
+                        const def = parts[3];
+                        const tag = parts.slice(4).join("|");
+
+                        return {
+                            server: srv,
+                            season: parseInt(seasonStr, 10),
+                            atk_sig: atk,
+                            def_sig: def,
+                            tag: tag,
+                        };
                     });
 
                     await api.batchDeleteSummaries(itemsToDelete);

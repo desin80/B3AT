@@ -2,18 +2,10 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-class BattleRecord(BaseModel):
-    id: int
-    season: int
-    tag: str = ""
-    timestamp: int
-    is_win: bool
-    attackteam: List[int]
-    defendteam: List[int]
-
-
 class DeleteSummaryModel(BaseModel):
     server: str = "global"
+    season: int
+    tag: str = ""
     atk_sig: str
     def_sig: str
 

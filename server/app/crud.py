@@ -3,135 +3,79 @@ from .database import get_db_connection
 from .utils import wilson_lower_bound, posterior_mean, generate_signatures
 
 
-def recalculate_all_stats(conn):
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM arena_stats")
-
-    cursor.execute(
-        """
-        SELECT 
-            server,
-            season, 
-            tag, 
-            atk_team_json, 
-            def_team_json, 
-            COUNT(*), 
-            SUM(is_win), 
-            MAX(timestamp)
-        FROM battles
-        GROUP BY server, season, tag, atk_team_json, def_team_json
+def batch_upsert_stats(conn, updates_list):
     """
-    )
-    rows = cursor.fetchall()
+    updates_list: list of dicts
+    {
+        'server': str, 'season': int, 'tag': str,
+        'atk_team': list, 'def_team': list,
+        'wins_delta': int, 'losses_delta': int,
+        'timestamp': int
+    }
+    """
+    cursor = conn.cursor()
+    count = 0
 
-    insert_list = []
-    for row in rows:
-        server, season, tag, atk_json, def_json, total, wins, last_seen = row
+    for item in updates_list:
+        server = item["server"]
+        season = item["season"]
+        tag = item["tag"]
+        atk_team = item["atk_team"]
+        def_team = item["def_team"]
+        wins_delta = item["wins_delta"]
+        losses_delta = item["losses_delta"]
+        timestamp = item["timestamp"]
 
-        try:
-            atk_team = json.loads(atk_json)
-            def_team = json.loads(def_json)
-        except:
+        total_delta = wins_delta + losses_delta
+        if total_delta == 0:
             continue
 
         atk_strict, atk_smart = generate_signatures(atk_team)
         def_strict, def_smart = generate_signatures(def_team)
 
-        w_score = wilson_lower_bound(wins, total)
-        p_mean = posterior_mean(wins, total)
-
-        insert_list.append(
-            (
-                server,
-                season,
-                tag,
-                atk_strict,
-                def_strict,
-                atk_smart,
-                def_smart,
-                atk_json,
-                def_json,
-                total,
-                wins,
-                last_seen,
-                w_score,
-                p_mean,
-            )
+        cursor.execute(
+            """
+            SELECT total_battles, total_wins, last_seen 
+            FROM arena_stats 
+            WHERE server=? AND season=? AND tag=? 
+              AND atk_strict_sig=? AND def_strict_sig=?
+        """,
+            (server, season, tag, atk_strict, def_strict),
         )
 
-    cursor.executemany(
-        """
-    INSERT INTO arena_stats (
-        server,
-        season, 
-        tag,
-        atk_strict_sig, def_strict_sig, 
-        atk_smart_sig, def_smart_sig,
-        atk_team_json, def_team_json, 
-        total_battles, total_wins, last_seen, 
-        wilson_score, avg_win_rate
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """,
-        insert_list,
-    )
+        row = cursor.fetchone()
 
-    conn.commit()
-    return len(insert_list)
+        if row:
+            current_total = row["total_battles"]
+            current_wins = row["total_wins"]
+            current_last_seen = row["last_seen"]
 
+            new_total = current_total + total_delta
+            new_wins = current_wins + wins_delta
+            new_last_seen = max(current_last_seen, timestamp)
+        else:
+            new_total = total_delta
+            new_wins = wins_delta
+            new_last_seen = timestamp
+        if new_total < 0:
+            new_total = 0
+        if new_wins < 0:
+            new_wins = 0
 
-def update_specific_stat(conn, server, atk_team_list, def_team_list, tag=""):
-    cursor = conn.cursor()
+        w_score = wilson_lower_bound(new_wins, new_total)
+        p_mean = posterior_mean(new_wins, new_total)
 
-    atk_strict, atk_smart = generate_signatures(atk_team_list)
-    def_strict, def_smart = generate_signatures(def_team_list)
-
-    atk_json = json.dumps(atk_team_list)
-    def_json = json.dumps(def_team_list)
-
-    atk_sig_fast = ",".join(map(str, sorted(atk_team_list)))
-    def_sig_fast = ",".join(map(str, sorted(def_team_list)))
-
-    cursor.execute(
-        """
-        SELECT 
-            season,
-            COUNT(*) as total, 
-            SUM(is_win) as wins, 
-            MAX(timestamp) as last_seen
-        FROM battles
-        WHERE server = ?
-          AND atk_team_sig = ? AND def_team_sig = ? 
-          AND atk_team_json = ? AND def_team_json = ?
-          AND tag = ? 
-        GROUP BY season
-    """,
-        (server, atk_sig_fast, def_sig_fast, atk_json, def_json, tag),
-    )
-
-    rows = cursor.fetchall()
-    if not rows:
-        return 0
-
-    updated_count = 0
-    for row in rows:
-        season = row["season"]
-        total = row["total"]
-        wins = row["wins"]
-        last_seen = row["last_seen"]
-
-        w_score = wilson_lower_bound(wins, total)
-        p_mean = posterior_mean(wins, total)
+        atk_json = json.dumps(atk_team)
+        def_json = json.dumps(def_team)
 
         cursor.execute(
             """
             INSERT OR REPLACE INTO arena_stats (
-                server,
-                season, 
-                tag,
-                atk_strict_sig, def_strict_sig, 
+                server, season, tag,
+                atk_strict_sig, def_strict_sig,
                 atk_smart_sig, def_smart_sig,
-                atk_team_json, def_team_json, 
-                total_battles, total_wins, last_seen, 
+                atk_team_json, def_team_json,
+                total_battles, total_wins, last_seen,
                 wilson_score, avg_win_rate
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
@@ -145,17 +89,17 @@ def update_specific_stat(conn, server, atk_team_list, def_team_list, tag=""):
                 def_smart,
                 atk_json,
                 def_json,
-                total,
-                wins,
-                last_seen,
+                new_total,
+                new_wins,
+                new_last_seen,
                 w_score,
                 p_mean,
             ),
         )
-        updated_count += 1
+        count += 1
 
     conn.commit()
-    return updated_count
+    return count
 
 
 def get_filtered_summaries(
