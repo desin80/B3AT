@@ -21,7 +21,6 @@ const ArenaPage = () => {
     const [page, setPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const [studentList, setStudentList] = useState([]);
-    const [ignoreSpecials, setIgnoreSpecials] = useState(true);
     const [season, setSeason] = useState(null);
     const [seasonsList, setSeasonsList] = useState([]);
     const [sort, setSort] = useState("default");
@@ -66,7 +65,6 @@ const ArenaPage = () => {
                 queryFilters,
                 ITEMS_PER_PAGE,
                 sort,
-                ignoreSpecials,
                 server
             );
             setSummaries(data.data);
@@ -83,7 +81,7 @@ const ArenaPage = () => {
         setSelectedSet(new Set());
 
         fetchData();
-    }, [page, season, sort, filters, ignoreSpecials, server]);
+    }, [page, season, sort, filters, server]);
 
     const handleOpenSelector = (callback, index) => {
         setSelectorCallback(() => callback);
@@ -216,24 +214,6 @@ const ArenaPage = () => {
                             <span className="w-2 h-2 rounded-full bg-sky-500"></span>
                         )}
                     </button>
-
-                    <div className="flex items-center gap-2 ml-2 bg-white px-3 py-1.5 rounded-md border border-gray-300 shadow-sm">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                className="sr-only peer"
-                                checked={ignoreSpecials}
-                                onChange={(e) => {
-                                    setIgnoreSpecials(e.target.checked);
-                                    setPage(1);
-                                }}
-                            />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-sky-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-600"></div>
-                            <span className="ml-2 text-sm font-medium text-gray-700 select-none">
-                                {t("arena.filter.ignore_specials")}
-                            </span>
-                        </label>
-                    </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">

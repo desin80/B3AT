@@ -72,12 +72,9 @@ const api = {
         filters = {},
         limit = 20,
         sort = "default",
-        ignoreSpecials = false,
         server = "global"
     ) => {
         const params = new URLSearchParams({ page, limit, sort, server });
-
-        if (ignoreSpecials) params.append("ignore_specials", "true");
 
         if (filters.season) params.append("season", filters.season);
 

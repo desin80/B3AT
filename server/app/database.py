@@ -22,11 +22,8 @@ def init_db():
         season INTEGER,
         tag TEXT DEFAULT '',
 
-        atk_strict_sig TEXT,
-        def_strict_sig TEXT,
-
-        atk_smart_sig TEXT,
-        def_smart_sig TEXT,
+        atk_team_sig TEXT,
+        def_team_sig TEXT,
 
         atk_team_json TEXT,
         def_team_json TEXT,
@@ -37,7 +34,7 @@ def init_db():
         wilson_score REAL, 
         avg_win_rate REAL,
 
-        PRIMARY KEY (server, season, tag, atk_strict_sig, def_strict_sig)
+        PRIMARY KEY (server, season, tag, atk_team_sig, def_team_sig)
     );
 
     CREATE INDEX IF NOT EXISTS idx_season_server_total ON arena_stats(season, server, total_battles DESC);
@@ -45,7 +42,6 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_season_server_wilson ON arena_stats(season, server, wilson_score DESC);
     CREATE INDEX IF NOT EXISTS idx_main_winrate ON arena_stats(season, server, avg_win_rate DESC);
     CREATE INDEX IF NOT EXISTS idx_main_time ON arena_stats(season, server, last_seen DESC);
-    CREATE INDEX IF NOT EXISTS idx_grouping_helper ON arena_stats(season, server, atk_smart_sig, def_smart_sig);
     """
     )
 
