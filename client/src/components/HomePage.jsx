@@ -15,8 +15,8 @@ const HomePage = () => {
                     Blue Archive
                 </h2>
 
-                <h1 className="text-4xl md:text-6xl font-black text-gray-800 font-[nexonFont] leading-tight p-2">
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-blue-600 inline-block pr-2">
+                <h1 className="text-4xl md:text-6xl font-black text-gray-800 font-[nexonFont] drop-shadow-sm p-2 leading-tight">
+                    <span className="inline-block text-sky-600 pr-2">
                         Arena
                     </span>{" "}
                     Analysis Tool
