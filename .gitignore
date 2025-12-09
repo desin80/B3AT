@@ -1,4 +1,6 @@
 arena.db
+arena.db-shm
+arena.db-wal
 ##############################
 # Root-level ignores
 ##############################
@@ -26,11 +28,9 @@ server/.venv/
 server/__pycache__/
 server/*.py[cod]
 server/*.egg-info/
-server/records.json
+server/mock_data.json
 server/mock.py
-server/migrate_legacy.py
-server/rebuild_stats.py
-server/main copy.py
+server/import_data.py
 server/app/__pycache__/
 server/app/routers/__pycache__/
 

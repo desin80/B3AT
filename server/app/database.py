@@ -5,6 +5,8 @@ from .config import DB_PATH
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA cache_size=-64000;")
+    conn.execute("PRAGMA mmap_size=268435456;")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -38,10 +40,12 @@ def init_db():
         PRIMARY KEY (server, season, tag, atk_strict_sig, def_strict_sig)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_stats_season ON arena_stats(season);
-    CREATE INDEX IF NOT EXISTS idx_stats_total ON arena_stats(total_battles);
-    CREATE INDEX IF NOT EXISTS idx_wilson ON arena_stats(wilson_score);
-    CREATE INDEX IF NOT EXISTS idx_smart_sig ON arena_stats(server, season, tag, atk_smart_sig, def_smart_sig);
+    CREATE INDEX IF NOT EXISTS idx_season_server_total ON arena_stats(season, server, total_battles DESC);
+    CREATE INDEX IF NOT EXISTS idx_season_server_time ON arena_stats(season, server, last_seen DESC);
+    CREATE INDEX IF NOT EXISTS idx_season_server_wilson ON arena_stats(season, server, wilson_score DESC);
+    CREATE INDEX IF NOT EXISTS idx_main_winrate ON arena_stats(season, server, avg_win_rate DESC);
+    CREATE INDEX IF NOT EXISTS idx_main_time ON arena_stats(season, server, last_seen DESC);
+    CREATE INDEX IF NOT EXISTS idx_grouping_helper ON arena_stats(season, server, atk_smart_sig, def_smart_sig);
     """
     )
 

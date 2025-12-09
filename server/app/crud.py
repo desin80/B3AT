@@ -208,7 +208,7 @@ def get_filtered_summaries(
             if name == "total":
                 return "total_battles"
             if name == "win_rate":
-                return "(CAST(total_wins AS REAL) / total_battles)"
+                return "avg_win_rate"
         return ""
 
     if min_battles is not None:
