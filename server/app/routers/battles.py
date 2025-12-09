@@ -11,7 +11,7 @@ def get_seasons(server: Optional[str] = None):
     cursor = conn.cursor()
     if server and server != "all":
         cursor.execute(
-            "SELECT DISTINCT season FROM arena_stats WHERE server = ? ORDER BY season DESC",
+            "SELECT DISTINCT season FROM arena_stats WHERE server = %s ORDER BY season DESC",
             (server,),
         )
     else:
@@ -19,5 +19,5 @@ def get_seasons(server: Optional[str] = None):
 
     rows = cursor.fetchall()
     conn.close()
-    seasons = [row[0] for row in rows]
+    seasons = [row["season"] for row in rows]
     return seasons if seasons else [1]

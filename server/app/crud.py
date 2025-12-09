@@ -27,9 +27,9 @@ def batch_upsert_stats(conn, updates_list):
             """
             SELECT total_battles, total_wins, last_seen 
             FROM arena_stats 
-            WHERE server=? AND season=? AND tag=? 
-              AND atk_team_sig=? AND def_team_sig=?
-        """,
+            WHERE server=%s AND season=%s AND tag=%s 
+              AND atk_team_sig=%s AND def_team_sig=%s
+            """,
             (server, season, tag, atk_sig, def_sig),
         )
 
@@ -56,9 +56,9 @@ def batch_upsert_stats(conn, updates_list):
             cursor.execute(
                 """
                 DELETE FROM arena_stats
-                WHERE server=? AND season=? AND tag=?
-                  AND atk_team_sig=? AND def_team_sig=?
-            """,
+                WHERE server=%s AND season=%s AND tag=%s
+                  AND atk_team_sig=%s AND def_team_sig=%s
+                """,
                 (server, season, tag, atk_sig, def_sig),
             )
         else:
@@ -75,14 +75,23 @@ def batch_upsert_stats(conn, updates_list):
 
             cursor.execute(
                 """
-                INSERT OR REPLACE INTO arena_stats (
+                INSERT INTO arena_stats (
                     server, season, tag,
                     atk_team_sig, def_team_sig,
                     atk_team_json, def_team_json,
                     total_battles, total_wins, last_seen,
                     wilson_score, avg_win_rate
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (server, season, tag, atk_team_sig, def_team_sig)
+                DO UPDATE SET
+                    total_battles = EXCLUDED.total_battles,
+                    total_wins = EXCLUDED.total_wins,
+                    last_seen = EXCLUDED.last_seen,
+                    wilson_score = EXCLUDED.wilson_score,
+                    avg_win_rate = EXCLUDED.avg_win_rate,
+                    atk_team_json = EXCLUDED.atk_team_json,
+                    def_team_json = EXCLUDED.def_team_json
+                """,
                 (
                     server,
                     season,
@@ -127,59 +136,59 @@ def get_filtered_summaries(
     params = []
 
     if server != "all":
-        where_clauses.append("server = ?")
+        where_clauses.append("server = %s")
         params.append(server)
-
     if season:
-        where_clauses.append("season = ?")
+        where_clauses.append("season = %s")
         params.append(season)
-
     if tag is not None:
-        where_clauses.append("tag = ?")
+        where_clauses.append("tag = %s")
         params.append(tag)
 
     if atk_contains:
-        for i in atk_contains.split(","):
-            if i.strip():
-                where_clauses.append("atk_team_json LIKE ?")
-                params.append(f"%{i.strip()}%")
+        try:
+            ids = [int(x.strip()) for x in atk_contains.split(",") if x.strip()]
+            if ids:
+                where_clauses.append("atk_team_json @> %s::jsonb")
+                params.append(json.dumps(ids))
+        except ValueError:
+            pass
+
     if def_contains:
-        for i in def_contains.split(","):
-            if i.strip():
-                where_clauses.append("def_team_json LIKE ?")
-                params.append(f"%{i.strip()}%")
+        try:
+            ids = [int(x.strip()) for x in def_contains.split(",") if x.strip()]
+            if ids:
+                where_clauses.append("def_team_json @> %s::jsonb")
+                params.append(json.dumps(ids))
+        except ValueError:
+            pass
 
     if atk_slots:
         for s in atk_slots.split(","):
             if ":" in s:
                 idx, uid = s.split(":")
-                where_clauses.append(
-                    f"json_extract(atk_team_json, '$[{idx.strip()}]') = ?"
-                )
+                where_clauses.append(f"(atk_team_json->>{idx.strip()})::int = %s")
                 params.append(int(uid.strip()))
     if def_slots:
         for s in def_slots.split(","):
             if ":" in s:
                 idx, uid = s.split(":")
-                where_clauses.append(
-                    f"json_extract(def_team_json, '$[{idx.strip()}]') = ?"
-                )
+                where_clauses.append(f"(def_team_json->>{idx.strip()})::int = %s")
                 params.append(int(uid.strip()))
 
     if min_battles is not None:
-        where_clauses.append("total_battles >= ?")
+        where_clauses.append("total_battles >= %s")
         params.append(min_battles)
 
     if min_win_rate is not None:
-
-        where_clauses.append("(CAST(total_wins AS REAL) / total_battles) >= ?")
+        where_clauses.append("(total_wins::float / NULLIF(total_battles, 0)) >= %s")
         params.append(min_win_rate)
 
     where_str = " AND ".join(where_clauses)
 
     count_sql = f"SELECT COUNT(*) FROM arena_stats WHERE {where_str}"
     cursor.execute(count_sql, params)
-    total_count = cursor.fetchone()[0]
+    total_count = cursor.fetchone()["count"]
 
     select_clause = """
         server, season, tag,
@@ -204,7 +213,7 @@ def get_filtered_summaries(
         FROM arena_stats 
         WHERE {where_str} 
         ORDER BY {sort_key} {direction} 
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """
 
     final_params = params + [limit, offset]

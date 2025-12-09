@@ -48,8 +48,16 @@ def get_summaries(
                 "server": row["server"],
                 "season": row["season"],
                 "tag": row["tag"],
-                "attackingTeam": json.loads(row["atk_json"]),
-                "defendingTeam": json.loads(row["def_json"]),
+                "attackingTeam": (
+                    row["atk_json"]
+                    if isinstance(row["atk_json"], list)
+                    else json.loads(row["atk_json"])
+                ),
+                "defendingTeam": (
+                    row["def_json"]
+                    if isinstance(row["def_json"], list)
+                    else json.loads(row["def_json"])
+                ),
                 "total": row["total"],
                 "wins": row["wins"],
                 "losses": row["total"] - row["wins"],
@@ -93,7 +101,7 @@ def manual_add(req: ManualAddRequest):
             INSERT INTO submissions (
                 server, season, tag, atk_team_json, def_team_json, 
                 wins, losses, note, image_path, status, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 req.server,
@@ -244,11 +252,11 @@ def delete_summary(
         cursor.execute(
             """
             DELETE FROM arena_stats 
-            WHERE server = ? 
-              AND season = ? 
-              AND tag = ? 
-              AND atk_strict_sig = ? 
-              AND def_strict_sig = ?
+            WHERE server = %s 
+              AND season = %s 
+              AND tag = %s 
+              AND atk_strict_sig = %s 
+              AND def_strict_sig = %s
             """,
             (
                 payload.server,
@@ -281,11 +289,11 @@ def batch_delete_summaries(
             cursor.execute(
                 """
                 DELETE FROM arena_stats 
-                WHERE server = ? 
-                  AND season = ? 
-                  AND tag = ? 
-                  AND atk_strict_sig = ? 
-                  AND def_strict_sig = ?
+                WHERE server = %s 
+                  AND season = %s 
+                  AND tag = %s 
+                  AND atk_strict_sig = %s 
+                  AND def_strict_sig = %s
                 """,
                 (item.server, item.season, item.tag, item.atk_sig, item.def_sig),
             )

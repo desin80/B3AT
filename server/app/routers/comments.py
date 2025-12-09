@@ -30,7 +30,7 @@ def get_comments(atk_sig: str, def_sig: str, server: str = "global"):
     cursor.execute(
         """
         SELECT * FROM comments 
-        WHERE server = ? AND atk_sig = ? AND def_sig = ? 
+        WHERE server = %s AND atk_sig = %s AND def_sig = %s 
         ORDER BY created_at DESC
     """,
         (server, final_atk, final_def),
@@ -51,7 +51,8 @@ def add_comment(req: CommentRequest):
         cursor.execute(
             """
             INSERT INTO comments (server, atk_sig, def_sig, username, content, parent_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id;
         """,
             (
                 req.server,
@@ -63,8 +64,10 @@ def add_comment(req: CommentRequest):
                 now,
             ),
         )
+        new_id = cursor.fetchone()["id"]
+
         conn.commit()
-        return {"id": cursor.lastrowid, "message": "Comment added"}
+        return {"id": new_id, "message": "Comment added"}
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -77,7 +80,7 @@ def delete_comment(comment_id: int, admin: str = Depends(get_current_admin)):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "DELETE FROM comments WHERE id = ? OR parent_id = ?", (comment_id, comment_id)
+        "DELETE FROM comments WHERE id = %s OR parent_id = %s", (comment_id, comment_id)
     )
     conn.commit()
     conn.close()

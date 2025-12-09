@@ -63,7 +63,7 @@ async def create_submission(
             INSERT INTO submissions (
                 server, season, tag, atk_team_json, def_team_json, 
                 wins, losses, note, image_path, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
             (
                 server,
@@ -98,12 +98,9 @@ def get_pending_submissions(admin: str = Depends(get_current_admin)):
     cursor.execute(
         "SELECT * FROM submissions WHERE status = 'pending' ORDER BY created_at DESC"
     )
+
     columns = [column[0] for column in cursor.description]
     results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-    for r in results:
-        r["atk_team"] = json.loads(r["atk_team_json"])
-        r["def_team"] = json.loads(r["def_team_json"])
 
     conn.close()
     return results
@@ -115,7 +112,7 @@ def approve_submission(sub_id: int, admin: str = Depends(get_current_admin)):
     cursor = conn.cursor()
 
     try:
-        cursor.execute("SELECT * FROM submissions WHERE id = ?", (sub_id,))
+        cursor.execute("SELECT * FROM submissions WHERE id = %s", (sub_id,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Submission not found")
@@ -125,8 +122,8 @@ def approve_submission(sub_id: int, admin: str = Depends(get_current_admin)):
             raise HTTPException(status_code=400, detail="Submission already processed")
 
         now = int(time.time())
-        atk_team = json.loads(data["atk_team_json"])
-        def_team = json.loads(data["def_team_json"])
+        atk_team = data["atk_team_json"]
+        def_team = data["def_team_json"]
 
         update_item = {
             "server": data["server"],
@@ -142,7 +139,7 @@ def approve_submission(sub_id: int, admin: str = Depends(get_current_admin)):
         batch_upsert_stats(conn, [update_item])
 
         cursor.execute(
-            "UPDATE submissions SET status = 'approved' WHERE id = ?", (sub_id,)
+            "UPDATE submissions SET status = 'approved' WHERE id = %s", (sub_id,)
         )
 
         conn.commit()
@@ -159,7 +156,9 @@ def approve_submission(sub_id: int, admin: str = Depends(get_current_admin)):
 def reject_submission(sub_id: int, admin: str = Depends(get_current_admin)):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE submissions SET status = 'rejected' WHERE id = ?", (sub_id,))
+    cursor.execute(
+        "UPDATE submissions SET status = 'rejected' WHERE id = %s", (sub_id,)
+    )
     conn.commit()
     conn.close()
     return {"message": "Rejected"}
@@ -175,16 +174,12 @@ def get_submission_history(limit: int = 50, admin: str = Depends(get_current_adm
         SELECT * FROM submissions 
         WHERE status != 'pending' 
         ORDER BY created_at DESC 
-        LIMIT ?
+        LIMIT %s
         """,
         (limit,),
     )
     columns = [column[0] for column in cursor.description]
     results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
-    for r in results:
-        r["atk_team"] = json.loads(r["atk_team_json"])
-        r["def_team"] = json.loads(r["def_team_json"])
 
     conn.close()
     return results
@@ -196,7 +191,7 @@ def revert_submission(sub_id: int, admin: str = Depends(get_current_admin)):
     cursor = conn.cursor()
 
     try:
-        cursor.execute("SELECT * FROM submissions WHERE id = ?", (sub_id,))
+        cursor.execute("SELECT * FROM submissions WHERE id = %s", (sub_id,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Submission not found")
@@ -211,8 +206,8 @@ def revert_submission(sub_id: int, admin: str = Depends(get_current_admin)):
 
         if current_status == "approved":
             now = int(time.time())
-            atk_team = json.loads(data["atk_team_json"])
-            def_team = json.loads(data["def_team_json"])
+            atk_team = data["atk_team_json"]
+            def_team = data["def_team_json"]
 
             update_item = {
                 "server": data["server"],
@@ -228,7 +223,7 @@ def revert_submission(sub_id: int, admin: str = Depends(get_current_admin)):
             batch_upsert_stats(conn, [update_item])
 
         cursor.execute(
-            "UPDATE submissions SET status = 'pending' WHERE id = ?", (sub_id,)
+            "UPDATE submissions SET status = 'pending' WHERE id = %s", (sub_id,)
         )
         conn.commit()
 

@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PATH = os.getenv("DB_PATH", "../arena.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 MAX_MANUAL_COUNT = 2000
 
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
