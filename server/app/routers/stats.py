@@ -93,25 +93,43 @@ def get_summaries(
 @router.post("/api/manual_add")
 def manual_add(req: ManualAddRequest):
     if req.season < 1:
-        raise HTTPException(status_code=400, detail="Season must be a positive integer")
-
-    if req.wins > MAX_MANUAL_COUNT or req.losses > MAX_MANUAL_COUNT:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Wins and Losses must each be less than {MAX_MANUAL_COUNT}",
-        )
-
+        raise HTTPException(status_code=400, detail="Season must be positive")
     if req.wins < 0 or req.losses < 0:
         raise HTTPException(status_code=400, detail="Counts cannot be negative")
-
     if req.wins == 0 and req.losses == 0:
-        raise HTTPException(
-            status_code=400, detail="At least one win or loss is required"
-        )
+        raise HTTPException(status_code=400, detail="Action required")
 
     conn = get_db_connection()
+    cursor = conn.cursor()
+
     try:
         now = int(time.time())
+
+        atk_json = json.dumps(req.atk_team)
+        def_json = json.dumps(req.def_team)
+
+        cursor.execute(
+            """
+            INSERT INTO submissions (
+                server, season, tag, atk_team_json, def_team_json, 
+                wins, losses, note, image_path, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                req.server,
+                req.season,
+                req.tag,
+                atk_json,
+                def_json,
+                req.wins,
+                req.losses,
+                "Admin Manual Entry",
+                None,
+                "approved",
+                now,
+            ),
+        )
+
         update_item = {
             "server": req.server,
             "season": req.season,
@@ -124,7 +142,8 @@ def manual_add(req: ManualAddRequest):
         }
 
         batch_upsert_stats(conn, [update_item])
-        return {"message": "Stats updated successfully."}
+
+        return {"message": "Stats updated and recorded in history."}
 
     except Exception as e:
         conn.rollback()
