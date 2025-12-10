@@ -13,17 +13,6 @@
 
 ---
 
-> ### 关于权限与安全
->
-> 本分支已集成管理系统。
->
-> -   **普通用户**：可以浏览数据、使用筛选器，手动录入战绩时需要**提交审核**（支持上传截图证明），无法直接修改数据库。
-> -   **管理员**：登录后拥有最高权限，包括审核用户提交的请求、直接导入/删除数据、批量管理等。
->
-> 默认情况下，系统运行在单用户管理员模式，账号密码在环境变量中配置。
-
----
-
 ## 核心功能 (Features)
 
 ### 1. 战局分析 (Battle Analysis)
@@ -55,38 +44,32 @@
 
 ### 前置要求
 
--   Node.js (v18+)
--   Python (v3.11+)
+-   Node.js
+-   Go
+-   PostgreSQL
+
+---
 
 ### 1. 后端配置与启动 (Server)
 
-在 `server` 目录下，除了安装依赖，你需要创建一个 `.env` 配置文件来设置管理员账号。
+在 server 目录下，除了安装依赖，你需要创建一个 .env 配置文件来设置管理员账号。
 
 ```bash
 cd server
 
-# 1. 创建虚拟环境并激活
-python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 创建配置文件 .env
-# 复制以下内容到 server/.env 文件中:
+# 1. 设置环境变量 (.env)
+# 在 server/.env 文件中创建如下内容：
 # -------------------------
-# API_PORT=8000
+# PORT=8000
 # FRONTEND_URL=http://localhost:5173
+# DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/arena_db
 # SECRET_KEY=请修改为一个复杂的随机字符串
 # ADMIN_USERNAME=sensei
 # ADMIN_PASSWORD=arona
 # -------------------------
 
-# 4. 启动服务
-python main.py
+# 2. 启动服务
+go run ./cmd/main.go
 ```
 
 ### 2. 前端配置与启动 (Client)

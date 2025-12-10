@@ -13,17 +13,6 @@
 
 ---
 
-> ### Permissions & Security
->
-> This branch integrates a lightweight administration system.
->
-> -   **Normal Users**: Can view data and use filters. Manual entry of battle records requires **submission for review** (supports uploading proof screenshots). Direct database modification is restricted.
-> -   **Administrators**: Have full access after logging in, including reviewing user submissions, direct data import/deletion, and batch management.
->
-> By default, the system runs in single-user admin mode, with credentials configured via environment variables.
-
----
-
 ## Features
 
 ### 1. Battle Analysis
@@ -55,38 +44,32 @@ Provides multi-dimensional statistical data, including win rate, sample size, po
 
 ### Prerequisites
 
--   Node.js (v18+)
--   Python (v3.11+)
+-   Node.js
+-   Go
+-   PostgreSQL
+
+---
 
 ### 1. Backend Setup (Server)
 
-In the `server` directory, besides installing dependencies, you need to create a `.env` file to configure the admin credentials.
+In the server directory, besides installing dependencies, you need to create a .env file to configure the admin credentials.
 
 ```bash
 cd server
 
-# 1. Create and activate virtual environment
-python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Create configuration file .env
+# 1. Create a configuration file .env
 # Copy the following content into server/.env:
 # -------------------------
-# API_PORT=8000
+# PORT=8000
 # FRONTEND_URL=http://localhost:5173
+# DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/arena_db
 # SECRET_KEY=change_this_to_a_complex_random_string
 # ADMIN_USERNAME=sensei
 # ADMIN_PASSWORD=arona
 # -------------------------
 
-# 4. Start the server
-python main.py
+# 2. Start the server
+go run ./cmd/main.go
 ```
 
 ### 2. Frontend Setup (Client)
