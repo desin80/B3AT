@@ -199,7 +199,10 @@ const api = {
     manualAddRecord: async (payload) => {
         const res = await fetch(`${API_BASE}/manual_add`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders(),
+            },
             body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error("Failed to add records");
