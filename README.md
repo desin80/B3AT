@@ -93,7 +93,7 @@ npm run dev
 ```
 
 打开浏览器访问 `http://localhost:5173`。
-直接访问 `/login` 进行管理员登录（默认账号：`sensei` / `arona`）。
+直接访问 `/login` 进行管理员登录。
 
 ---
 

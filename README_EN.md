@@ -93,7 +93,7 @@ npm run dev
 ```
 
 Open your browser and visit `http://localhost:5173`.
-Visit `/login` directly to log in as an administrator (Default credentials: `sensei` / `arona`).
+Visit `/login` directly to log in as an administrator.
 
 ---
 
