@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import attackIcon from "../assets/attack.png";
-import defendIcon from "../assets/defend.png";
+import attackIcon from "../../assets/attack.png";
+import defendIcon from "../../assets/defend.png";
 
 const TeamSlot = ({ index, studentId, onClick, onClear, studentMap }) => {
     const isSpecial = index >= 4;

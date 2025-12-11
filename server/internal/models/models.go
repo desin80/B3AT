@@ -21,47 +21,49 @@ func (a *IntArray) Scan(value interface{}) error {
 }
 
 type ArenaStats struct {
-	Server string `gorm:"primaryKey;default:'global'"`
-	Season int    `gorm:"primaryKey;index:idx_season_server_total;index:idx_season_server_time;index:idx_season_server_wilson"`
-	Tag    string `gorm:"primaryKey;default:''"`
+	Server string `gorm:"primaryKey;default:'global'" json:"server"`
+	Season int    `gorm:"primaryKey;index:idx_season_server_total;index:idx_season_server_time;index:idx_season_server_wilson" json:"season"`
+	Tag    string `gorm:"primaryKey;default:''" json:"tag"`
 
-	AtkTeamSig string `gorm:"primaryKey"`
-	DefTeamSig string `gorm:"primaryKey"`
+	AtkTeamSig string `gorm:"primaryKey" json:"atk_sig"`
+	DefTeamSig string `gorm:"primaryKey" json:"def_sig"`
 
-	AtkTeamJson IntArray `gorm:"type:jsonb;index:idx_atk_json_gin,type:gin"`
-	DefTeamJson IntArray `gorm:"type:jsonb;index:idx_def_json_gin,type:gin"`
+	AtkTeamJson IntArray `gorm:"type:jsonb;index:idx_atk_json_gin,type:gin" json:"atk_team"`
+	DefTeamJson IntArray `gorm:"type:jsonb;index:idx_def_json_gin,type:gin" json:"def_team"`
 
-	TotalBattles int `gorm:"index:idx_season_server_total,sort:desc"`
-	TotalWins    int
-	LastSeen     int64   `gorm:"index:idx_season_server_time,sort:desc"`
-	WilsonScore  float64 `gorm:"index:idx_season_server_wilson,sort:desc"`
-	AvgWinRate   float64
+	TotalBattles int     `gorm:"index:idx_season_server_total,sort:desc" json:"total_battles"`
+	TotalWins    int     `json:"total_wins"`
+	LastSeen     int64   `gorm:"index:idx_season_server_time,sort:desc" json:"last_seen"`
+	WilsonScore  float64 `gorm:"index:idx_season_server_wilson,sort:desc" json:"wilson_score"`
+	AvgWinRate   float64 `json:"avg_win_rate"`
 }
 
 type Comment struct {
-	ID        uint   `gorm:"primaryKey"`
-	Server    string `gorm:"default:'global';index:idx_comments_sigs"`
-	AtkSig    string `gorm:"not null;index:idx_comments_sigs"`
-	DefSig    string `gorm:"not null;index:idx_comments_sigs"`
-	Username  string
-	Content   string `gorm:"not null"`
-	ParentID  *uint  `gorm:"default:null;index:idx_comments_parent"`
-	CreatedAt int64  `gorm:"not null"`
+	ID        uint   `gorm:"primaryKey" json:"id"`
+	Server    string `gorm:"default:'global';index:idx_comments_sigs" json:"server"`
+	AtkSig    string `gorm:"not null;index:idx_comments_sigs" json:"atk_sig"`
+	DefSig    string `gorm:"not null;index:idx_comments_sigs" json:"def_sig"`
+	Username  string `json:"username"`
+	Content   string `gorm:"not null" json:"content"`
+	ParentID  *uint  `gorm:"default:null;index:idx_comments_parent" json:"parent_id"`
+	CreatedAt int64  `gorm:"not null" json:"created_at"`
 }
 
 type Submission struct {
-	ID          uint   `gorm:"primaryKey"`
-	Server      string `gorm:"not null"`
-	Season      int    `gorm:"not null"`
-	Tag         string
-	AtkTeamJson IntArray `gorm:"type:jsonb"`
-	DefTeamJson IntArray `gorm:"type:jsonb"`
-	Wins        int      `gorm:"not null"`
-	Losses      int      `gorm:"not null"`
-	Note        string
-	ImagePath   *string
-	Status      string `gorm:"default:'pending';index:idx_submissions_status"`
-	CreatedAt   int64  `gorm:"not null"`
+	ID     uint   `gorm:"primaryKey" json:"id"`
+	Server string `gorm:"not null" json:"server"`
+	Season int    `gorm:"not null" json:"season"`
+	Tag    string `json:"tag"`
+
+	AtkTeamJson IntArray `gorm:"type:jsonb" json:"atk_team"`
+	DefTeamJson IntArray `gorm:"type:jsonb" json:"def_team"`
+
+	Wins      int     `gorm:"not null" json:"wins"`
+	Losses    int     `gorm:"not null" json:"losses"`
+	Note      string  `json:"note"`
+	ImagePath *string `json:"image_path"`
+	Status    string  `gorm:"default:'pending';index:idx_submissions_status" json:"status"`
+	CreatedAt int64   `gorm:"not null" json:"created_at"`
 }
 
 type ManualAddRequest struct {

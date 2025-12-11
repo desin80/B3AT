@@ -1,10 +1,10 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./components/Layout";
-import HomePage from "./components/HomePage";
-import ArenaPage from "./components/ArenaPage";
-import SettingsPage from "./components/SettingsPage";
-import LoginPage from "./components/LoginPage";
+import Layout from "./components/layout/Layout";
+import HomePage from "./pages/Home/HomePage";
+import ArenaPage from "./pages/Arena/ArenaPage";
+import SettingsPage from "./pages/Settings/SettingsPage";
+import LoginPage from "./pages/Login/LoginPage";
 import { AuthProvider } from "./context/AuthContext";
 import { UIProvider } from "./context/UIContext";
 

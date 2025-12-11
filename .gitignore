@@ -1,6 +1,7 @@
 arena.db
 arena.db-shm
 arena.db-wal
+
 ##############################
 # Root-level ignores
 ##############################
@@ -16,27 +17,46 @@ Thumbs.db
 client/node_modules/
 client/dist/
 client/.vite/
-
-# Local config (如果你不想提交则保留，否则可删)
+client/pkg
 client/*.local
 
 ##############################
-# Server (Python + FastAPI)
+# Server (Go backend)
 ##############################
-server/venv/
-server/.venv/
-server/__pycache__/
-server/*.py[cod]
-server/*.egg-info/
-server/mock_data.json
-server/mock.py
+# Build output
+server/bin/
+server/dist/
+server/build/
+server/mock_data.json 
+server/mock.py 
 server/import_data.py
-server/app/__pycache__/
-server/app/routers/__pycache__/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go cache / module files
+server/pkg/
+*.out
+
+# Coverage files
+coverage.txt
+*.coverprofile
+*.cover
+*.cov
+
+# Vendor directory (if not using `go mod vendor`)
+server/vendor/
 
 ##############################
 # IDE / Editors
 ##############################
 .vscode/
 
+##############################
+# Other
+##############################
 linux/

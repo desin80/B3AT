@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import api from "../services/api";
-import { useAuth } from "../context/AuthContext";
-import { useUI } from "../context/UIContext";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { useUI } from "../../context/UIContext";
 
 const CommentItem = ({
     comment,

@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "./LanguageSwitcher";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 import Footer from "./Footer";
 import "./Layout.css";
-import logo from "../assets/logo.png";
-import { useAuth } from "../context/AuthContext";
+import logo from "../../assets/logo.png";
+import { useAuth } from "../../context/AuthContext";
 
 const Layout = () => {
     const { t } = useTranslation();

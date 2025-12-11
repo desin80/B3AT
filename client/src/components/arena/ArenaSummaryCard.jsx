@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../context/AuthContext";
-import { useUI } from "../context/UIContext";
+import { useAuth } from "../../context/AuthContext";
+import { useUI } from "../../context/UIContext";
 
-import attackIcon from "../assets/attack.png";
-import defendIcon from "../assets/defend.png";
-import vsIcon from "../assets/vs.png";
-import cardBg from "../assets/card_bg.png";
-import unknownBg from "../assets/card_bg_unknown.png";
+import attackIcon from "../../assets/attack.png";
+import defendIcon from "../../assets/defend.png";
+import vsIcon from "../../assets/vs.png";
+import cardBg from "../../assets/card_bg.png";
+import unknownBg from "../../assets/card_bg_unknown.png";
 import ArenaCommentSection from "./ArenaCommentSection";
 
 const formatTeamStructure = (teamIds) => {

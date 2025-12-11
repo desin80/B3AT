@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import "./HomePage.css";
 
-import arenaIcon from "../assets/attack.png";
+import arenaIcon from "../../assets/attack.png";
 
 const HomePage = () => {
     const { t } = useTranslation();
