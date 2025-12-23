@@ -1,14 +1,18 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { useUI } from "../../context/UIContext";
+import api from "../../services/api";
 
 import attackIcon from "../../assets/attack.png";
 import defendIcon from "../../assets/defend.png";
 import vsIcon from "../../assets/vs.png";
 import cardBg from "../../assets/card_bg.png";
 import unknownBg from "../../assets/card_bg_unknown.png";
+import charStarIcon from "../../assets/char_star.png";
+import weaponStarIcon from "../../assets/weapon_star.png";
 import ArenaCommentSection from "./ArenaCommentSection";
+import LoadingSpinner from "../common/LoadingSpinner";
 
 const formatTeamStructure = (teamIds) => {
     const strikers = teamIds.filter((id) => String(id).startsWith("1"));
@@ -77,13 +81,49 @@ const StatWithTooltip = ({
     );
 };
 
-const StudentCard = ({ studentId, isSpecial }) => {
+const LoadoutBadge = ({ star = 0, weaponStar = 0 }) => {
+    const hasWeapon = weaponStar > 0;
+    return (
+        <div
+            className={`loadout-badge ${hasWeapon ? "has-weapon" : ""}`}
+            title={`★${star}${hasWeapon ? ` / W★${weaponStar}` : ""}`}
+        >
+            <div className="loadout-layer char-layer">
+                <img src={charStarIcon} alt="Star" className="loadout-icon" />
+                <span className="loadout-value">{star}</span>
+            </div>
+            {hasWeapon && (
+                <div className="loadout-layer weapon-layer">
+                    <img
+                        src={weaponStarIcon}
+                        alt="Weapon Star"
+                        className="loadout-icon"
+                    />
+                    <span className="loadout-value">{weaponStar}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const StudentCard = ({ studentId, isSpecial, loadout }) => {
     const bgImage = studentId ? cardBg : unknownBg;
+
+    const star = loadout?.star ?? 0;
+    const weaponStar = loadout?.weapon_star ?? 0;
 
     return (
         <div
             className="rs-char-card"
-            title={studentId ? `ID: ${studentId}` : "Empty"}
+            title={
+                studentId
+                    ? `ID: ${studentId}${
+                          loadout
+                              ? `\nStar: ${star}\nWeapon: ${weaponStar}`
+                              : ""
+                      }`
+                    : "Empty"
+            }
             style={{ marginLeft: isSpecial ? "0.5rem" : "0" }}
         >
             <div
@@ -102,12 +142,23 @@ const StudentCard = ({ studentId, isSpecial }) => {
                     }}
                 />
             )}
+            {studentId && loadout && (
+                <LoadoutBadge star={star} weaponStar={weaponStar} />
+            )}
         </div>
     );
 };
 
-const TeamAvatars = ({ teamIds }) => {
+const TeamAvatars = ({ teamIds, loadouts }) => {
     const { strikers, specials } = formatTeamStructure(teamIds);
+
+    const loadoutMap = useMemo(() => {
+        const map = {};
+        (loadouts || []).forEach((entry) => {
+            map[entry.id] = entry;
+        });
+        return map;
+    }, [loadouts]);
 
     return (
         <div className="team-avatars" onMouseDown={(e) => e.stopPropagation()}>
@@ -116,6 +167,7 @@ const TeamAvatars = ({ teamIds }) => {
                     key={`striker-${index}`}
                     studentId={id}
                     isSpecial={false}
+                    loadout={loadoutMap[id]}
                 />
             ))}
 
@@ -124,6 +176,7 @@ const TeamAvatars = ({ teamIds }) => {
                     key={`special-${index}`}
                     studentId={id}
                     isSpecial={index === 0}
+                    loadout={loadoutMap[id]}
                 />
             ))}
         </div>
@@ -140,9 +193,13 @@ const ArenaSummaryCard = ({
 }) => {
     const { t } = useTranslation();
     const { isAdmin } = useAuth();
-    const { showConfirm } = useUI();
+    const { showConfirm, showToast } = useUI();
 
     const [showComments, setShowComments] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [details, setDetails] = useState([]);
+    const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+    const [hasLoadedDetail, setHasLoadedDetail] = useState(false);
 
     const winRate = (summary.winRate * 100).toFixed(0);
     const smoothRate = (summary.avgWinRate * 100).toFixed(1);
@@ -177,13 +234,42 @@ const ArenaSummaryCard = ({
         );
     };
 
+    const loadDetails = async () => {
+        setIsLoadingDetail(true);
+        try {
+            const res = await api.getSummaryDetails(
+                summary.atk_sig,
+                summary.def_sig,
+                summary.server || "global",
+                summary.season || null,
+                summary.tag || null,
+                1,
+                30,
+                "default"
+            );
+            setDetails(res.data || []);
+            setHasLoadedDetail(true);
+        } catch (err) {
+            console.error(err);
+            showToast(err.message || "Failed to load details", "error");
+        } finally {
+            setIsLoadingDetail(false);
+        }
+    };
+
     const handleCardClick = (e) => {
         if (isAdmin && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             e.stopPropagation();
             onToggleCheck(summary, !isChecked);
-        } else {
-            if (onClick) onClick(e);
+            return;
+        }
+        if (onClick) onClick(e);
+
+        const nextExpanded = !isExpanded;
+        setIsExpanded(nextExpanded);
+        if (nextExpanded && !hasLoadedDetail && !isLoadingDetail) {
+            loadDetails();
         }
     };
 
@@ -384,6 +470,147 @@ const ArenaSummaryCard = ({
                     </button>
                 </div>
             </div>
+            {isExpanded && (
+                <div
+                    className={`w-full bg-white/80 border-t border-gray-200 px-4 py-3 space-y-3 ${
+                        showComments ? "" : "rounded-b-[0.85rem]"
+                    }`}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                            <svg
+                                className="w-4 h-4 text-sky-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 8c1.657 0 3-.843 3-1.882C15 5.077 13.657 4 12 4s-3 1.077-3 2.118C9 7.157 10.343 8 12 8zm0 0v12m0-12c-3.866 0-7 1.79-7 4v2m7-6c3.866 0 7 1.79 7 4v2m-7 6c-3.866 0-7-1.79-7-4v-2m7 6c3.866 0 7-1.79 7-4v-2"
+                                />
+                            </svg>
+                            {t("arena.detail.title", "Loadout Details")}
+                        </div>
+                        {isLoadingDetail && (
+                            <span className="text-xs text-gray-400">
+                                {t("common.loading", "Loading...")}
+                            </span>
+                        )}
+                    </div>
+
+                    {isLoadingDetail ? (
+                        <div className="py-4">
+                            <LoadingSpinner />
+                        </div>
+                    ) : details.length === 0 ? (
+                        <div className="text-center text-gray-400 text-sm py-3">
+                            {t(
+                                "arena.detail.empty",
+                                "No detailed loadouts yet."
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {details.map((item, idx) => {
+                                const winRateDetail =
+                                    item.total > 0
+                                        ? Math.round(
+                                              (item.wins / item.total) * 100
+                                          )
+                                        : 0;
+                                return (
+                                    <div
+                                        key={`${item.loadout_hash}-${idx}`}
+                                        className="bg-sky-50/40 border border-sky-100 rounded-lg p-3 flex flex-col gap-2 shadow-sm"
+                                    >
+                                            <div className="flex items-center justify-between text-sm text-gray-600">
+                                                <div className="font-semibold text-gray-700">
+                                                    {t(
+                                                        "arena.detail.loadout_label",
+                                                        "Loadout"
+                                                    )}{" "}
+                                                    #{idx + 1}
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-mono text-gray-700">
+                                                        {t("arena.recordStat", {
+                                                            wins: item.wins,
+                                                            losses: item.losses,
+                                                        })}
+                                                    </span>
+                                                    <span className="font-semibold text-sky-700 text-lg">
+                                                        {winRateDetail}%
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <div className="team-display-container">
+                                                <TeamAvatars
+                                                    teamIds={item.attackingTeam}
+                                                    loadouts={item.atk_loadout}
+                                                />
+                                                <div className="icon-display attacking-icon">
+                                                    <img
+                                                        src={attackIcon}
+                                                        alt="Attacking"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="vs-icon">
+                                                <img src={vsIcon} alt="VS" />
+                                            </div>
+
+                                            <div className="team-display-container">
+                                                <div className="icon-display defending-icon">
+                                                    <img
+                                                        src={defendIcon}
+                                                        alt="Defending"
+                                                    />
+                                                </div>
+                                                <TeamAvatars
+                                                    teamIds={item.defendingTeam}
+                                                    loadouts={item.def_loadout}
+                                                />
+                                            </div>
+
+                                            <div className="ml-auto flex flex-col gap-1 text-xs text-gray-600">
+                                                <div className="flex items-center justify-between min-w-[170px] px-3 py-1 rounded bg-white border border-gray-200">
+                                                    <span className="text-[11px] text-gray-500">
+                                                        {t("arena.stats.label_sample")}
+                                                    </span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {item.total}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between min-w-[170px] px-3 py-1 rounded bg-white border border-gray-200">
+                                                    <span className="text-[11px] text-gray-500">
+                                                        {t("arena.stats.label_wilson")}
+                                                    </span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(item.wilsonScore * 100).toFixed(1)}%
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between min-w-[170px] px-3 py-1 rounded bg-white border border-gray-200">
+                                                    <span className="text-[11px] text-gray-500">
+                                                        {t("arena.stats.label_posterior")}
+                                                    </span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(item.avgWinRate * 100).toFixed(1)}%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
             {showComments && (
                 <ArenaCommentSection
                     server={summary.server}

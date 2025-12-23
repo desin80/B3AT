@@ -137,3 +137,61 @@
   opacity: 0;
   animation: fadeInUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
+
+.loadout-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 8px;
+    width: 1.8rem;
+    height: 1.8rem;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+}
+
+.loadout-layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #111827;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+    opacity: 1;
+}
+
+.loadout-layer .loadout-icon {
+    position: absolute;
+    width: 1.05rem;
+    height: 1.05rem;
+    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.6));
+}
+
+.loadout-value {
+    position: relative;
+    z-index: 1;
+}
+
+.loadout-badge.has-weapon .char-layer {
+    animation: fade-swap-char 5s infinite ease-in-out;
+}
+
+.loadout-badge.has-weapon .weapon-layer {
+    animation: fade-swap-weapon 5s infinite ease-in-out;
+}
+
+@keyframes fade-swap-char {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    52% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes fade-swap-weapon {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    52% { opacity: 1; }
+    100% { opacity: 0; }
+}

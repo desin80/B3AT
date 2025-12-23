@@ -29,7 +29,8 @@
         "logout": "退出登录",
         "login": "登录",
         "delete_success": "删除成功",
-        "delete_confirm": "确认删除"
+        "delete_confirm": "确认删除",
+        "empty": "空"
     },
     "settings": {
         "title": "数据管理",
@@ -78,6 +79,7 @@
             "season": "赛季",
             "atk": "进攻方",
             "def": "防守方",
+            "loadout": "练度",
             "wins": "胜场数",
             "losses": "败场数",
             "submit": "添加记录",
@@ -176,6 +178,11 @@
             "delete_selected": "删除选中项",
             "confirm_title": "批量删除",
             "confirm_msg": "确定要删除 {{count}} 条记录吗？此操作无法撤销。"
+        },
+        "detail": {
+            "title": "练度明细",
+            "empty": "暂时没有练度明细",
+            "loadout_label": "练度"
         }
     }
 }

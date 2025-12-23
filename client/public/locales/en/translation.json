@@ -33,7 +33,8 @@
         "logout": "Logout",
         "login": "Login",
         "delete_success": "Deleted successfully",
-        "delete_confirm": "Delete Record"
+        "delete_confirm": "Delete Record",
+        "empty": "Empty"
     },
     "settings": {
         "title": "Data Management",
@@ -81,6 +82,7 @@
             "season": "Season",
             "atk": "Attacking Team",
             "def": "Defending Team",
+            "loadout": "Loadout",
             "result": "Result",
             "wins": "Wins",
             "losses": "Losses",
@@ -179,6 +181,11 @@
             "delete_selected": "Delete Selected",
             "confirm_title": "Batch Delete",
             "confirm_msg": "Are you sure you want to delete {{count}} records? This action cannot be undone."
+        },
+        "detail": {
+            "title": "Loadout Details",
+            "empty": "No detailed loadouts yet.",
+            "loadout_label": "Loadout"
         }
     }
 }

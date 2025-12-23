@@ -23,13 +23,13 @@ client/*.local
 ##############################
 # Server (Go backend)
 ##############################
-# Build output
 server/bin/
 server/dist/
 server/build/
 server/mock_data.json 
 server/mock.py 
 server/import_data.py
+server/scripts/
 
 # Go build artifacts
 *.exe
@@ -59,4 +59,4 @@ server/vendor/
 ##############################
 # Other
 ##############################
-linux/
+deploy/

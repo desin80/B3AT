@@ -107,6 +107,33 @@ const api = {
         if (!res.ok) throw new Error("Failed to fetch summaries");
         return await res.json();
     },
+
+    getSummaryDetails: async (
+        atkSig,
+        defSig,
+        server = "global",
+        season = null,
+        tag = null,
+        page = 1,
+        limit = 30,
+        sort = "default"
+    ) => {
+        const params = new URLSearchParams({
+            atk_sig: atkSig,
+            def_sig: defSig,
+            server,
+            page,
+            limit,
+            sort,
+        });
+        if (season) params.append("season", season);
+        if (tag) params.append("tag", tag);
+
+        const res = await fetch(`${API_BASE}/summaries/detail?${params}`);
+        if (!res.ok) throw new Error("Failed to fetch detail summaries");
+        return await res.json();
+    },
+
     deleteArenaSummary: async (atkSig, defSig, server, season, tag = "") => {
         const res = await fetch(`${API_BASE}/summaries/delete`, {
             method: "POST",

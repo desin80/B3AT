@@ -40,6 +40,7 @@ func InitDB() {
 	log.Println("Running AutoMigrate...")
 	err = DB.AutoMigrate(
 		&models.ArenaStats{},
+		&models.ArenaStatsDetail{},
 		&models.Comment{},
 		&models.Submission{},
 	)

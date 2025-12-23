@@ -35,6 +35,7 @@ func Setup(db *gorm.DB) *gin.Engine {
 	r.POST("/api/token", handlers.Login)
 	r.GET("/api/seasons", battlesH.GetSeasons)
 	r.GET("/api/summaries", statsH.GetSummaries)
+	r.GET("/api/summaries/detail", statsH.GetSummaryDetails)
 	r.GET("/api/comments", commentsH.GetComments)
 	r.POST("/api/comments", commentsH.AddComment)
 	r.POST("/api/submissions", subH.CreateSubmission)

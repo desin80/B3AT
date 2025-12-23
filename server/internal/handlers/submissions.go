@@ -158,6 +158,8 @@ func (h *SubmissionHandler) CreateSubmission(c *gin.Context) {
 	tag := c.PostForm("tag")
 	atkStr := c.PostForm("atk_team")
 	defStr := c.PostForm("def_team")
+	atkLoadoutStr := c.PostForm("atk_loadout")
+	defLoadoutStr := c.PostForm("def_loadout")
 	wins, _ := strconv.Atoi(c.PostForm("wins"))
 	losses, _ := strconv.Atoi(c.PostForm("losses"))
 	note := c.PostForm("note")
@@ -187,6 +189,19 @@ func (h *SubmissionHandler) CreateSubmission(c *gin.Context) {
 	var atkTeam, defTeam []int
 	json.Unmarshal([]byte(atkStr), &atkTeam)
 	json.Unmarshal([]byte(defStr), &defTeam)
+	var atkLoadout, defLoadout []models.LoadoutEntry
+	if atkLoadoutStr != "" {
+		if err := json.Unmarshal([]byte(atkLoadoutStr), &atkLoadout); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"detail": "Invalid atk_loadout JSON"})
+			return
+		}
+	}
+	if defLoadoutStr != "" {
+		if err := json.Unmarshal([]byte(defLoadoutStr), &defLoadout); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"detail": "Invalid def_loadout JSON"})
+			return
+		}
+	}
 
 	sub := models.Submission{
 		Server:      server,
@@ -194,6 +209,8 @@ func (h *SubmissionHandler) CreateSubmission(c *gin.Context) {
 		Tag:         tag,
 		AtkTeamJson: models.IntArray(atkTeam),
 		DefTeamJson: models.IntArray(defTeam),
+		AtkLoadout:  models.LoadoutArray(atkLoadout),
+		DefLoadout:  models.LoadoutArray(defLoadout),
 		Wins:        wins,
 		Losses:      losses,
 		Note:        note,
@@ -255,6 +272,22 @@ func (h *SubmissionHandler) ProcessSubmission(c *gin.Context) {
 			if _, err := txRepo.BatchUpsertStats([]models.StatsUpdateDTO{update}); err != nil {
 				return err
 			}
+
+			detailUpdate := models.StatsDetailUpdateDTO{
+				Server:      sub.Server,
+				Season:      sub.Season,
+				Tag:         sub.Tag,
+				AtkTeam:     []int(sub.AtkTeamJson),
+				DefTeam:     []int(sub.DefTeamJson),
+				AtkLoadout:  []models.LoadoutEntry(sub.AtkLoadout),
+				DefLoadout:  []models.LoadoutEntry(sub.DefLoadout),
+				WinsDelta:   sub.Wins,
+				LossesDelta: sub.Losses,
+				Timestamp:   time.Now().Unix(),
+			}
+			if _, err := txRepo.BatchUpsertDetails([]models.StatsDetailUpdateDTO{detailUpdate}); err != nil {
+				return err
+			}
 			sub.Status = "approved"
 
 		case "reject":
@@ -276,6 +309,22 @@ func (h *SubmissionHandler) ProcessSubmission(c *gin.Context) {
 					Timestamp:   time.Now().Unix(),
 				}
 				if _, err := txRepo.BatchUpsertStats([]models.StatsUpdateDTO{update}); err != nil {
+					return err
+				}
+
+				detailUpdate := models.StatsDetailUpdateDTO{
+					Server:      sub.Server,
+					Season:      sub.Season,
+					Tag:         sub.Tag,
+					AtkTeam:     []int(sub.AtkTeamJson),
+					DefTeam:     []int(sub.DefTeamJson),
+					AtkLoadout:  []models.LoadoutEntry(sub.AtkLoadout),
+					DefLoadout:  []models.LoadoutEntry(sub.DefLoadout),
+					WinsDelta:   -sub.Wins,
+					LossesDelta: -sub.Losses,
+					Timestamp:   time.Now().Unix(),
+				}
+				if _, err := txRepo.BatchUpsertDetails([]models.StatsDetailUpdateDTO{detailUpdate}); err != nil {
 					return err
 				}
 			}

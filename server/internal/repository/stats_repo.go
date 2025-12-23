@@ -106,6 +106,98 @@ func (r *StatsRepository) BatchUpsertStats(updates []models.StatsUpdateDTO) (int
 	return count, err
 }
 
+func (r *StatsRepository) BatchUpsertDetails(updates []models.StatsDetailUpdateDTO) (int64, error) {
+	count := int64(0)
+
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		for _, item := range updates {
+			atkList, atkSig := utils.NormalizeTeam(item.AtkTeam)
+			defList, defSig := utils.NormalizeTeam(item.DefTeam)
+
+			normAtkLoadout := utils.NormalizeLoadout(atkList, item.AtkLoadout)
+			normDefLoadout := utils.NormalizeLoadout(defList, item.DefLoadout)
+			loadoutHash := utils.BuildLoadoutHash(normAtkLoadout, normDefLoadout)
+
+			totalDelta := item.WinsDelta + item.LossesDelta
+			if totalDelta == 0 {
+				continue
+			}
+
+			var detail models.ArenaStatsDetail
+
+			result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("server = ? AND season = ? AND tag = ? AND atk_team_sig = ? AND def_team_sig = ? AND loadout_hash = ?",
+					item.Server, item.Season, item.Tag, atkSig, defSig, loadoutHash).
+				First(&detail)
+
+			exists := result.Error == nil
+			if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+				return result.Error
+			}
+
+			var newTotal, newWins int
+			var newLastSeen int64
+
+			if exists {
+				newTotal = detail.TotalBattles + totalDelta
+				newWins = detail.TotalWins + item.WinsDelta
+
+				if totalDelta > 0 && item.Timestamp > detail.LastSeen {
+					newLastSeen = item.Timestamp
+				} else {
+					newLastSeen = detail.LastSeen
+				}
+			} else {
+				newTotal = totalDelta
+				newWins = item.WinsDelta
+				newLastSeen = item.Timestamp
+			}
+
+			if newTotal <= 0 {
+				if exists {
+					if err := tx.Delete(&detail).Error; err != nil {
+						return err
+					}
+				}
+			} else {
+				if newWins < 0 {
+					newWins = 0
+				}
+				if newWins > newTotal {
+					newWins = newTotal
+				}
+
+				wScore := utils.WilsonLowerBound(newWins, newTotal)
+				pMean := utils.PosteriorMean(newWins, newTotal)
+
+				detail.Server = item.Server
+				detail.Season = item.Season
+				detail.Tag = item.Tag
+				detail.AtkTeamSig = atkSig
+				detail.DefTeamSig = defSig
+				detail.LoadoutHash = loadoutHash
+				detail.AtkTeamJson = models.IntArray(atkList)
+				detail.DefTeamJson = models.IntArray(defList)
+				detail.AtkLoadoutJson = models.LoadoutArray(normAtkLoadout)
+				detail.DefLoadoutJson = models.LoadoutArray(normDefLoadout)
+				detail.TotalBattles = newTotal
+				detail.TotalWins = newWins
+				detail.LastSeen = newLastSeen
+				detail.WilsonScore = wScore
+				detail.AvgWinRate = pMean
+
+				if err := tx.Save(&detail).Error; err != nil {
+					return err
+				}
+			}
+			count++
+		}
+		return nil
+	})
+
+	return count, err
+}
+
 func (r *StatsRepository) GetFilteredSummaries(q models.SummaryQueryDTO) ([]models.ArenaStats, int64, error) {
 	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
@@ -199,4 +291,73 @@ func (r *StatsRepository) DeleteSummary(server string, season int, tag, atkSig, 
 		server, season, tag, atkSig, defSig).
 		Delete(&models.ArenaStats{})
 	return result.RowsAffected, result.Error
+}
+
+func (r *StatsRepository) GetDetailedSummaries(q models.SummaryDetailQueryDTO) ([]models.ArenaStatsDetail, int64, error) {
+	psql := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
+
+	base := psql.Select("*").From("arena_stats_details")
+	counter := psql.Select("COUNT(*)").From("arena_stats_details")
+
+	preds := squirrel.And{
+		squirrel.Eq{"atk_team_sig": q.AtkSig},
+		squirrel.Eq{"def_team_sig": q.DefSig},
+	}
+
+	if q.Server != "all" {
+		preds = append(preds, squirrel.Eq{"server": q.Server})
+	}
+	if q.Season != nil {
+		preds = append(preds, squirrel.Eq{"season": *q.Season})
+	}
+	if q.Tag != nil {
+		preds = append(preds, squirrel.Eq{"tag": *q.Tag})
+	}
+
+	base = base.Where(preds)
+	counter = counter.Where(preds)
+
+	countSql, countArgs, err := counter.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var total int64
+	if err := r.DB.Raw(countSql, countArgs...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orderBy := "total_battles DESC"
+	direction := "DESC"
+	if strings.Contains(strings.ToLower(q.Sort), "asc") {
+		direction = "ASC"
+	}
+
+	switch {
+	case q.Sort == "newest":
+		orderBy = fmt.Sprintf("last_seen %s", direction)
+	case strings.Contains(q.Sort, "win_rate"):
+		orderBy = fmt.Sprintf("avg_win_rate %s", direction)
+	case q.Sort == "composite":
+		orderBy = fmt.Sprintf("wilson_score %s", direction)
+	default:
+		orderBy = fmt.Sprintf("total_battles %s", direction)
+	}
+
+	base = base.OrderBy(orderBy)
+
+	offset := (q.Page - 1) * q.Limit
+	base = base.Limit(q.Limit).Offset(offset)
+
+	sqlStr, args, err := base.ToSql()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var results []models.ArenaStatsDetail
+	if err := r.DB.Raw(sqlStr, args...).Scan(&results).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return results, total, nil
 }

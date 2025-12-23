@@ -26,8 +26,24 @@ const SettingsPage = () => {
     const [importServer, setImportServer] = useState("global");
     const [importSeason, setImportSeason] = useState(9);
     const [season, setSeason] = useState(9);
+    const emptyLoadoutSlot = (id = 0) => ({
+        id,
+        star: id ? 5 : 0,
+        weapon_star: id ? 4 : 0,
+    });
+    const makeEmptyLoadout = () => [
+        emptyLoadoutSlot(),
+        emptyLoadoutSlot(),
+        emptyLoadoutSlot(),
+        emptyLoadoutSlot(),
+        emptyLoadoutSlot(),
+        emptyLoadoutSlot(),
+    ];
+
     const [atkTeam, setAtkTeam] = useState([0, 0, 0, 0, 0, 0]);
     const [defTeam, setDefTeam] = useState([0, 0, 0, 0, 0, 0]);
+    const [atkLoadout, setAtkLoadout] = useState(makeEmptyLoadout);
+    const [defLoadout, setDefLoadout] = useState(makeEmptyLoadout);
     const [wins, setWins] = useState(1);
     const [losses, setLosses] = useState(0);
     const [adding, setAdding] = useState(false);
@@ -103,10 +119,24 @@ const SettingsPage = () => {
                 const newTeam = [...atkTeam];
                 newTeam[index] = student.Id;
                 setAtkTeam(newTeam);
+                const newLoadout = [...atkLoadout];
+                newLoadout[index] = {
+                    id: student.Id,
+                    star: 5,
+                    weapon_star: 4,
+                };
+                setAtkLoadout(newLoadout);
             } else {
                 const newTeam = [...defTeam];
                 newTeam[index] = student.Id;
                 setDefTeam(newTeam);
+                const newLoadout = [...defLoadout];
+                newLoadout[index] = {
+                    id: student.Id,
+                    star: 5,
+                    weapon_star: 4,
+                };
+                setDefLoadout(newLoadout);
             }
         });
         setModalFilterType(index < 4 ? "striker" : "special");
@@ -118,10 +148,39 @@ const SettingsPage = () => {
             const newTeam = [...atkTeam];
             newTeam[index] = 0;
             setAtkTeam(newTeam);
+            const newLoadout = [...atkLoadout];
+            newLoadout[index] = emptyLoadoutSlot();
+            setAtkLoadout(newLoadout);
         } else {
             const newTeam = [...defTeam];
             newTeam[index] = 0;
             setDefTeam(newTeam);
+            const newLoadout = [...defLoadout];
+            newLoadout[index] = emptyLoadoutSlot();
+            setDefLoadout(newLoadout);
+        }
+    };
+
+    const handleLoadoutChange = (side, index, field, value) => {
+        const sanitized = Math.max(0, parseInt(value || 0, 10));
+        if (side === "atk") {
+            const next = [...atkLoadout];
+            next[index] = {
+                ...emptyLoadoutSlot(atkTeam[index]),
+                ...next[index],
+                [field]: sanitized,
+                id: atkTeam[index],
+            };
+            setAtkLoadout(next);
+        } else {
+            const next = [...defLoadout];
+            next[index] = {
+                ...emptyLoadoutSlot(defTeam[index]),
+                ...next[index],
+                [field]: sanitized,
+                id: defTeam[index],
+            };
+            setDefLoadout(next);
         }
     };
 
@@ -172,6 +231,28 @@ const SettingsPage = () => {
 
         const cleanAtk = atkTeam.filter((id) => id > 0);
         const cleanDef = defTeam.filter((id) => id > 0);
+        const cleanAtkLoadout = atkTeam
+            .map((id, idx) =>
+                id > 0
+                    ? {
+                          id,
+                          star: atkLoadout[idx]?.star || 0,
+                          weapon_star: atkLoadout[idx]?.weapon_star || 0,
+                      }
+                    : null
+            )
+            .filter(Boolean);
+        const cleanDefLoadout = defTeam
+            .map((id, idx) =>
+                id > 0
+                    ? {
+                          id,
+                          star: defLoadout[idx]?.star || 0,
+                          weapon_star: defLoadout[idx]?.weapon_star || 0,
+                      }
+                    : null
+            )
+            .filter(Boolean);
 
         try {
             if (isAdmin) {
@@ -182,6 +263,8 @@ const SettingsPage = () => {
                     tag: tag,
                     atk_team: cleanAtk,
                     def_team: cleanDef,
+                    atk_loadout: cleanAtkLoadout,
+                    def_loadout: cleanDefLoadout,
                     wins: parseInt(wins),
                     losses: parseInt(losses),
                 });
@@ -204,6 +287,14 @@ const SettingsPage = () => {
                 formData.append("tag", tag);
                 formData.append("atk_team", JSON.stringify(cleanAtk));
                 formData.append("def_team", JSON.stringify(cleanDef));
+                formData.append(
+                    "atk_loadout",
+                    JSON.stringify(cleanAtkLoadout)
+                );
+                formData.append(
+                    "def_loadout",
+                    JSON.stringify(cleanDefLoadout)
+                );
                 formData.append("wins", wins);
                 formData.append("losses", losses);
                 formData.append("note", note);
@@ -482,6 +573,168 @@ const SettingsPage = () => {
                                     onClick={() => openSelector("def", i)}
                                     onClear={() => clearSlot("def", i)}
                                 />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div className="bg-white/70 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            {t("settings.manual_section.atk")} -{" "}
+                            {t("settings.manual_section.loadout", "Loadout")}
+                        </h4>
+                        <div className="flex flex-col gap-2">
+                            {atkTeam.map((id, idx) => (
+                                <div
+                                    key={`atk-loadout-${idx}`}
+                                    className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-md px-3 py-2"
+                                >
+                                    <div className="flex items-center gap-2 min-w-[140px]">
+                                        <div className="w-10 h-10 rounded-md overflow-hidden bg-white border border-gray-200">
+                                            {id > 0 ? (
+                                                <img
+                                                    src={`https://schaledb.com/images/student/icon/${id}.webp`}
+                                                    alt={id}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full grid place-items-center text-gray-300 text-xs">
+                                                    +
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                            {id > 0
+                                                ? studentMap[id]?.Name ||
+                                                  `ID ${id}`
+                                                : t("common.empty", "Empty")}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <label className="text-xs text-gray-500">
+                                            ★
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="7"
+                                            value={atkLoadout[idx]?.star || 0}
+                                            onChange={(e) =>
+                                                handleLoadoutChange(
+                                                    "atk",
+                                                    idx,
+                                                    "star",
+                                                    e.target.value
+                                                )
+                                            }
+                                            disabled={id === 0}
+                                            className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
+                                        />
+                                        <label className="text-xs text-gray-500">
+                                            W★
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            value={
+                                                atkLoadout[idx]?.weapon_star ||
+                                                0
+                                            }
+                                            onChange={(e) =>
+                                                handleLoadoutChange(
+                                                    "atk",
+                                                    idx,
+                                                    "weapon_star",
+                                                    e.target.value
+                                                )
+                                            }
+                                            disabled={id === 0}
+                                            className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-white/70 border border-gray-200 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            {t("settings.manual_section.def")} -{" "}
+                            {t("settings.manual_section.loadout", "Loadout")}
+                        </h4>
+                        <div className="flex flex-col gap-2">
+                            {defTeam.map((id, idx) => (
+                                <div
+                                    key={`def-loadout-${idx}`}
+                                    className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-md px-3 py-2"
+                                >
+                                    <div className="flex items-center gap-2 min-w-[140px]">
+                                        <div className="w-10 h-10 rounded-md overflow-hidden bg-white border border-gray-200">
+                                            {id > 0 ? (
+                                                <img
+                                                    src={`https://schaledb.com/images/student/icon/${id}.webp`}
+                                                    alt={id}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full grid place-items-center text-gray-300 text-xs">
+                                                    +
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                            {id > 0
+                                                ? studentMap[id]?.Name ||
+                                                  `ID ${id}`
+                                                : t("common.empty", "Empty")}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <label className="text-xs text-gray-500">
+                                            ★
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="7"
+                                            value={defLoadout[idx]?.star || 0}
+                                            onChange={(e) =>
+                                                handleLoadoutChange(
+                                                    "def",
+                                                    idx,
+                                                    "star",
+                                                    e.target.value
+                                                )
+                                            }
+                                            disabled={id === 0}
+                                            className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
+                                        />
+                                        <label className="text-xs text-gray-500">
+                                            W★
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            value={
+                                                defLoadout[idx]?.weapon_star ||
+                                                0
+                                            }
+                                            onChange={(e) =>
+                                                handleLoadoutChange(
+                                                    "def",
+                                                    idx,
+                                                    "weapon_star",
+                                                    e.target.value
+                                                )
+                                            }
+                                            disabled={id === 0}
+                                            className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>

@@ -104,6 +104,82 @@ func (h *StatsHandler) GetSummaries(c *gin.Context) {
 	})
 }
 
+func (h *StatsHandler) GetSummaryDetails(c *gin.Context) {
+	type DetailReq struct {
+		Page   uint64  `form:"page,default=1"`
+		Limit  uint64  `form:"limit,default=20"`
+		Server string  `form:"server,default=global"`
+		Season *int    `form:"season"`
+		Tag    *string `form:"tag"`
+		Sort   string  `form:"sort,default=default"`
+		AtkSig string  `form:"atk_sig" binding:"required"`
+		DefSig string  `form:"def_sig" binding:"required"`
+	}
+
+	var req DetailReq
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid query parameters: " + err.Error()})
+		return
+	}
+
+	query := models.SummaryDetailQueryDTO{
+		Page:   req.Page,
+		Limit:  req.Limit,
+		Server: req.Server,
+		Season: req.Season,
+		Tag:    req.Tag,
+		Sort:   req.Sort,
+		AtkSig: req.AtkSig,
+		DefSig: req.DefSig,
+	}
+
+	rows, total, err := h.Repo.GetDetailedSummaries(query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+		return
+	}
+
+	respData := make([]models.SummaryDetailResponseItem, len(rows))
+	for i, row := range rows {
+		wr := 0.0
+		if row.TotalBattles > 0 {
+			wr = float64(row.TotalWins) / float64(row.TotalBattles)
+		}
+
+		respData[i] = models.SummaryDetailResponseItem{
+			Server:        row.Server,
+			Season:        row.Season,
+			Tag:           row.Tag,
+			AttackingTeam: []int(row.AtkTeamJson),
+			DefendingTeam: []int(row.DefTeamJson),
+			AtkLoadout:    []models.LoadoutEntry(row.AtkLoadoutJson),
+			DefLoadout:    []models.LoadoutEntry(row.DefLoadoutJson),
+			Total:         row.TotalBattles,
+			Wins:          row.TotalWins,
+			Losses:        row.TotalBattles - row.TotalWins,
+			WinRate:       wr,
+			WilsonScore:   row.WilsonScore,
+			AvgWinRate:    row.AvgWinRate,
+			LastSeen:      row.LastSeen,
+			AtkSig:        row.AtkTeamSig,
+			DefSig:        row.DefTeamSig,
+			LoadoutHash:   row.LoadoutHash,
+		}
+	}
+
+	totalPages := int64(0)
+	if req.Limit > 0 {
+		totalPages = (total + int64(req.Limit) - 1) / int64(req.Limit)
+	}
+
+	c.JSON(http.StatusOK, models.PaginatedDetailResponse{
+		Data:       respData,
+		Total:      total,
+		Page:       req.Page,
+		TotalPages: totalPages,
+	})
+}
+
 func (h *StatsHandler) ManualAdd(c *gin.Context) {
 	var req models.ManualAddRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -136,6 +212,8 @@ func (h *StatsHandler) ManualAdd(c *gin.Context) {
 			Wins:        req.Wins,
 			Losses:      req.Losses,
 			Note:        "Admin Manual Entry",
+			AtkLoadout:  models.LoadoutArray(req.AtkLoadout),
+			DefLoadout:  models.LoadoutArray(req.DefLoadout),
 			Status:      "approved",
 			CreatedAt:   now,
 		}
@@ -156,7 +234,23 @@ func (h *StatsHandler) ManualAdd(c *gin.Context) {
 			Timestamp:   now,
 		}
 
-		_, err := txRepo.BatchUpsertStats([]models.StatsUpdateDTO{updateItem})
+		detailUpdate := models.StatsDetailUpdateDTO{
+			Server:      req.Server,
+			Season:      req.Season,
+			Tag:         req.Tag,
+			AtkTeam:     req.AtkTeam,
+			DefTeam:     req.DefTeam,
+			AtkLoadout:  req.AtkLoadout,
+			DefLoadout:  req.DefLoadout,
+			WinsDelta:   req.Wins,
+			LossesDelta: req.Losses,
+			Timestamp:   now,
+		}
+
+		if _, err := txRepo.BatchUpsertStats([]models.StatsUpdateDTO{updateItem}); err != nil {
+			return err
+		}
+		_, err := txRepo.BatchUpsertDetails([]models.StatsDetailUpdateDTO{detailUpdate})
 		return err
 	})
 
