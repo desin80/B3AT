@@ -134,6 +134,20 @@ const api = {
         return await res.json();
     },
 
+    deleteSummaryDetails: async (items) => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/summaries/detail/delete`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...headers,
+            },
+            body: JSON.stringify({ items }),
+        });
+        if (!res.ok) throw new Error("Failed to delete detail records");
+        return await res.json();
+    },
+
     deleteArenaSummary: async (atkSig, defSig, server, season, tag = "") => {
         const res = await fetch(`${API_BASE}/summaries/delete`, {
             method: "POST",

@@ -287,14 +287,8 @@ const SettingsPage = () => {
                 formData.append("tag", tag);
                 formData.append("atk_team", JSON.stringify(cleanAtk));
                 formData.append("def_team", JSON.stringify(cleanDef));
-                formData.append(
-                    "atk_loadout",
-                    JSON.stringify(cleanAtkLoadout)
-                );
-                formData.append(
-                    "def_loadout",
-                    JSON.stringify(cleanDefLoadout)
-                );
+                formData.append("atk_loadout", JSON.stringify(cleanAtkLoadout));
+                formData.append("def_loadout", JSON.stringify(cleanDefLoadout));
                 formData.append("wins", wins);
                 formData.append("losses", losses);
                 formData.append("note", note);
@@ -632,7 +626,7 @@ const SettingsPage = () => {
                                             className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
                                         />
                                         <label className="text-xs text-gray-500">
-                                            W★
+                                            UE★
                                         </label>
                                         <input
                                             type="number"
@@ -712,7 +706,7 @@ const SettingsPage = () => {
                                             className="w-16 border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-sky-500 outline-none"
                                         />
                                         <label className="text-xs text-gray-500">
-                                            W★
+                                            UE★
                                         </label>
                                         <input
                                             type="number"

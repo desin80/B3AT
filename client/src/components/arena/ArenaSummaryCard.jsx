@@ -190,6 +190,7 @@ const ArenaSummaryCard = ({
     onClick,
     isChecked,
     onToggleCheck,
+    onRefreshSummary,
 }) => {
     const { t } = useTranslation();
     const { isAdmin } = useAuth();
@@ -200,6 +201,10 @@ const ArenaSummaryCard = ({
     const [details, setDetails] = useState([]);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
     const [hasLoadedDetail, setHasLoadedDetail] = useState(false);
+    const [selectedDetails, setSelectedDetails] = useState(new Set());
+    const [detailPage, setDetailPage] = useState(1);
+    const [detailSort, setDetailSort] = useState("default");
+    const [detailTotalPages, setDetailTotalPages] = useState(0);
 
     const winRate = (summary.winRate * 100).toFixed(0);
     const smoothRate = (summary.avgWinRate * 100).toFixed(1);
@@ -234,7 +239,9 @@ const ArenaSummaryCard = ({
         );
     };
 
-    const loadDetails = async () => {
+    const DETAIL_PAGE_SIZE = 20;
+
+    const loadDetails = async (page = detailPage, sort = detailSort) => {
         setIsLoadingDetail(true);
         try {
             const res = await api.getSummaryDetails(
@@ -243,12 +250,16 @@ const ArenaSummaryCard = ({
                 summary.server || "global",
                 summary.season || null,
                 summary.tag || null,
-                1,
-                30,
-                "default"
+                page,
+                DETAIL_PAGE_SIZE,
+                sort
             );
             setDetails(res.data || []);
             setHasLoadedDetail(true);
+            setSelectedDetails(new Set());
+            setDetailPage(page);
+            setDetailSort(sort);
+            setDetailTotalPages(res.totalPages || 0);
         } catch (err) {
             console.error(err);
             showToast(err.message || "Failed to load details", "error");
@@ -269,8 +280,48 @@ const ArenaSummaryCard = ({
         const nextExpanded = !isExpanded;
         setIsExpanded(nextExpanded);
         if (nextExpanded && !hasLoadedDetail && !isLoadingDetail) {
-            loadDetails();
+            loadDetails(1, detailSort);
         }
+    };
+
+    const toggleDetailSelect = (hash) => {
+        const next = new Set(selectedDetails);
+        if (next.has(hash)) next.delete(hash);
+        else next.add(hash);
+        setSelectedDetails(next);
+    };
+
+    const stopDetailClick = (e) => {
+        e.stopPropagation();
+    };
+
+    const handleDeleteDetails = () => {
+        if (selectedDetails.size === 0) return;
+        showConfirm(
+            t("common.delete_confirm", "Delete Record"),
+            t("arena.delete_warning", "Are you sure you want to delete this record?"),
+            async () => {
+                try {
+                    const items = Array.from(selectedDetails).map((hash) => ({
+                        server: summary.server,
+                        season: summary.season,
+                        tag: summary.tag || "",
+                        atk_sig: summary.atk_sig,
+                        def_sig: summary.def_sig,
+                        loadout_hash: hash,
+                    }));
+                    await api.deleteSummaryDetails(items);
+                    showToast(t("common.delete_success"), "success");
+                    setSelectedDetails(new Set());
+                    await loadDetails(detailPage, detailSort);
+                    if (onRefreshSummary) {
+                        onRefreshSummary();
+                    }
+                } catch (err) {
+                    showToast(err.message || "Delete failed", "error");
+                }
+            }
+        );
     };
 
     return (
@@ -476,7 +527,7 @@ const ArenaSummaryCard = ({
                         showComments ? "" : "rounded-b-[0.85rem]"
                     }`}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                             <svg
                                 className="w-4 h-4 text-sky-500"
@@ -493,11 +544,70 @@ const ArenaSummaryCard = ({
                             </svg>
                             {t("arena.detail.title", "Loadout Details")}
                         </div>
-                        {isLoadingDetail && (
-                            <span className="text-xs text-gray-400">
-                                {t("common.loading", "Loading...")}
-                            </span>
-                        )}
+                        <div className="flex items-center gap-2 text-xs text-gray-600" onClick={stopDetailClick}>
+                            <select
+                                className="border border-gray-300 rounded px-2 py-1 bg-white"
+                                value={detailSort}
+                                onChange={(e) => loadDetails(1, e.target.value)}
+                                onClick={stopDetailClick}
+                            >
+                                <option value="composite">
+                                    {t("arena.sort.composite")}
+                                </option>
+                                <option value="default">
+                                    {t("arena.sort.default")}
+                                </option>
+                                <option value="win_rate_desc">
+                                    {t("arena.sort.winRateDesc")}
+                                </option>
+                                <option value="win_rate_asc">
+                                    {t("arena.sort.winRateAsc")}
+                                </option>
+                                <option value="newest">
+                                    {t("arena.sort.newest")}
+                                </option>
+                            </select>
+                            {detailTotalPages > 1 && (
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={(e) => {
+                                            stopDetailClick(e);
+                                            loadDetails(
+                                                Math.max(1, detailPage - 1),
+                                                detailSort
+                                            );
+                                        }}
+                                        className="px-2 py-1 rounded border border-gray-300 bg-white disabled:opacity-50"
+                                        disabled={detailPage <= 1 || isLoadingDetail}
+                                    >
+                                        {t("common.prev")}
+                                    </button>
+                                    <span className="text-gray-500">
+                                        {detailPage}/{detailTotalPages}
+                                    </span>
+                                    <button
+                                        onClick={(e) => {
+                                            stopDetailClick(e);
+                                            loadDetails(
+                                                Math.min(detailTotalPages, detailPage + 1),
+                                                detailSort
+                                            );
+                                        }}
+                                        className="px-2 py-1 rounded border border-gray-300 bg-white disabled:opacity-50"
+                                        disabled={
+                                            detailPage >= detailTotalPages || isLoadingDetail
+                                        }
+                                    >
+                                        {t("common.next")}
+                                    </button>
+                                </div>
+                            )}
+                            {isLoadingDetail && (
+                                <span className="text-[11px] text-gray-400">
+                                    {t("common.loading", "Loading...")}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {isLoadingDetail ? (
@@ -513,6 +623,16 @@ const ArenaSummaryCard = ({
                         </div>
                     ) : (
                         <div className="space-y-2">
+                            {isAdmin && selectedDetails.size > 0 && (
+                                <div className="flex justify-end" onClick={stopDetailClick}>
+                                    <button
+                                        onClick={handleDeleteDetails}
+                                        className="px-3 py-1.5 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 shadow-sm transition-colors"
+                                    >
+                                        {t("arena.batch.delete_selected", "Delete Selected")}
+                                    </button>
+                                </div>
+                            )}
                             {details.map((item, idx) => {
                                 const winRateDetail =
                                     item.total > 0
@@ -523,18 +643,26 @@ const ArenaSummaryCard = ({
                                 return (
                                     <div
                                         key={`${item.loadout_hash}-${idx}`}
-                                        className="bg-sky-50/40 border border-sky-100 rounded-lg p-3 flex flex-col gap-2 shadow-sm"
+                                        className={`bg-sky-50/40 border border-sky-100 rounded-lg p-3 flex flex-col gap-2 shadow-sm ${
+                                            selectedDetails.has(item.loadout_hash)
+                                                ? "ring-2 ring-red-400"
+                                                : ""
+                                        }`}
+                                        onClick={(e) => {
+                                            stopDetailClick(e);
+                                            if (isAdmin) toggleDetailSelect(item.loadout_hash);
+                                        }}
                                     >
-                                            <div className="flex items-center justify-between text-sm text-gray-600">
-                                                <div className="font-semibold text-gray-700">
-                                                    {t(
-                                                        "arena.detail.loadout_label",
-                                                        "Loadout"
-                                                    )}{" "}
-                                                    #{idx + 1}
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-mono text-gray-700">
+                                        <div className="flex items-center justify-between text-sm text-gray-600">
+                                            <div className="font-semibold text-gray-700">
+                                                {t(
+                                                    "arena.detail.loadout_label",
+                                                    "Loadout"
+                                                )}{" "}
+                                                #{idx + 1}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-mono text-gray-700">
                                                         {t("arena.recordStat", {
                                                             wins: item.wins,
                                                             losses: item.losses,
@@ -546,12 +674,12 @@ const ArenaSummaryCard = ({
                                                 </div>
                                             </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <div className="team-display-container">
-                                                <TeamAvatars
-                                                    teamIds={item.attackingTeam}
-                                                    loadouts={item.atk_loadout}
-                                                />
+                                            <div className="flex items-center gap-2">
+                                                <div className="team-display-container">
+                                                    <TeamAvatars
+                                                        teamIds={item.attackingTeam}
+                                                        loadouts={item.atk_loadout}
+                                                    />
                                                 <div className="icon-display attacking-icon">
                                                     <img
                                                         src={attackIcon}

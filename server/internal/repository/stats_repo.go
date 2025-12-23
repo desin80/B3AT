@@ -361,3 +361,89 @@ func (r *StatsRepository) GetDetailedSummaries(q models.SummaryDetailQueryDTO) (
 
 	return results, total, nil
 }
+
+type detailKey struct {
+	Server string
+	Season int
+	Tag    string
+	AtkSig string
+	DefSig string
+}
+
+func (r *StatsRepository) recalcSummaryFromDetails(tx *gorm.DB, key detailKey) error {
+	var agg struct {
+		Total    int64
+		Wins     int64
+		LastSeen int64
+	}
+
+	if err := tx.Table("arena_stats_details").
+		Select("COALESCE(SUM(total_battles),0) AS total, COALESCE(SUM(total_wins),0) AS wins, COALESCE(MAX(last_seen),0) AS last_seen").
+		Where("server = ? AND season = ? AND tag = ? AND atk_team_sig = ? AND def_team_sig = ?",
+			key.Server, key.Season, key.Tag, key.AtkSig, key.DefSig).
+		Scan(&agg).Error; err != nil {
+		return err
+	}
+
+	if agg.Total == 0 {
+		// No details left, remove summary if exists.
+		_, err := r.DeleteSummary(key.Server, key.Season, key.Tag, key.AtkSig, key.DefSig)
+		return err
+	}
+
+	// Use one remaining detail row to carry team json.
+	var first models.ArenaStatsDetail
+	if err := tx.Where("server = ? AND season = ? AND tag = ? AND atk_team_sig = ? AND def_team_sig = ?",
+		key.Server, key.Season, key.Tag, key.AtkSig, key.DefSig).
+		First(&first).Error; err != nil {
+		return err
+	}
+
+	wScore := utils.WilsonLowerBound(int(agg.Wins), int(agg.Total))
+	pMean := utils.PosteriorMean(int(agg.Wins), int(agg.Total))
+
+	summary := models.ArenaStats{
+		Server:        key.Server,
+		Season:        key.Season,
+		Tag:           key.Tag,
+		AtkTeamSig:    key.AtkSig,
+		DefTeamSig:    key.DefSig,
+		AtkTeamJson:   models.IntArray(first.AtkTeamJson),
+		DefTeamJson:   models.IntArray(first.DefTeamJson),
+		TotalBattles:  int(agg.Total),
+		TotalWins:     int(agg.Wins),
+		LastSeen:      agg.LastSeen,
+		WilsonScore:   wScore,
+		AvgWinRate:    pMean,
+	}
+
+	return tx.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "server"}, {Name: "season"}, {Name: "tag"}, {Name: "atk_team_sig"}, {Name: "def_team_sig"}},
+		DoUpdates: clause.AssignmentColumns([]string{"atk_team_json", "def_team_json", "total_battles", "total_wins", "last_seen", "wilson_score", "avg_win_rate"}),
+	}).Create(&summary).Error
+}
+
+func (r *StatsRepository) DeleteDetailsAndRecalc(items []models.DeleteDetailModel) (int64, error) {
+	var deleted int64
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		keys := make(map[detailKey]struct{})
+		for _, it := range items {
+			res := tx.Where("server = ? AND season = ? AND tag = ? AND atk_team_sig = ? AND def_team_sig = ? AND loadout_hash = ?",
+				it.Server, it.Season, it.Tag, it.AtkSig, it.DefSig, it.LoadoutHash).
+				Delete(&models.ArenaStatsDetail{})
+			if res.Error != nil {
+				return res.Error
+			}
+			deleted += res.RowsAffected
+			keys[detailKey{it.Server, it.Season, it.Tag, it.AtkSig, it.DefSig}] = struct{}{}
+		}
+
+		for k := range keys {
+			if err := r.recalcSummaryFromDetails(tx, k); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return deleted, err
+}

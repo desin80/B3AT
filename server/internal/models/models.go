@@ -133,6 +133,15 @@ type BatchDeleteRequest struct {
 	Items []DeleteSummaryModel `json:"items"`
 }
 
+type DeleteDetailModel struct {
+	Server      string `json:"server"`
+	Season      int    `json:"season"`
+	Tag         string `json:"tag"`
+	AtkSig      string `json:"atk_sig"`
+	DefSig      string `json:"def_sig"`
+	LoadoutHash string `json:"loadout_hash"`
+}
+
 type CommentRequest struct {
 	Server   string `json:"server"`
 	AtkSig   string `json:"atk_sig"`

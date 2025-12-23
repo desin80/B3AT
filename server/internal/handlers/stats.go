@@ -262,6 +262,29 @@ func (h *StatsHandler) ManualAdd(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Stats updated and recorded in history."})
 }
 
+func (h *StatsHandler) DeleteSummaryDetails(c *gin.Context) {
+	type BatchReq struct {
+		Items []models.DeleteDetailModel `json:"items"`
+	}
+	var req BatchReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+	if len(req.Items) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Items cannot be empty"})
+		return
+	}
+
+	count, err := h.Repo.DeleteDetailsAndRecalc(req.Items)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Detail delete processed", "deleted": count})
+}
+
 func (h *StatsHandler) DeleteSummary(c *gin.Context) {
 	var req models.DeleteSummaryModel
 	if err := c.ShouldBindJSON(&req); err != nil {

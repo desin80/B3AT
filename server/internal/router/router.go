@@ -45,6 +45,7 @@ func Setup(db *gorm.DB) *gin.Engine {
 	{
 		auth.POST("/api/manual_add", statsH.ManualAdd)
 		auth.POST("/api/summaries/delete", statsH.DeleteSummary)
+		auth.POST("/api/summaries/detail/delete", statsH.DeleteSummaryDetails)
 		auth.POST("/api/summaries/batch_delete", func(c *gin.Context) {
 			type BatchReq struct {
 				Items []models.DeleteSummaryModel `json:"items"`

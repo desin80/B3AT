@@ -242,6 +242,7 @@ const ArenaPage = () => {
                                         onDelete={handleDeleteSummary}
                                         isChecked={selectedSet.has(key)}
                                         onToggleCheck={handleToggleCheck}
+                                        onRefreshSummary={fetchData}
                                     />
                                 </div>
                             );
