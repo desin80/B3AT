@@ -18,6 +18,8 @@ func Setup(db *gorm.DB) *gin.Engine {
 	battlesH := handlers.NewBattlesHandler(db)
 	commentsH := handlers.NewCommentsHandler(db)
 	subH := handlers.NewSubmissionHandler(db)
+	loadoutH := handlers.NewLoadoutHandler(statsH.Repo)
+	userH := handlers.NewUserHandler(db)
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = config.AppConfig.AllowedOrigins
@@ -41,7 +43,7 @@ func Setup(db *gorm.DB) *gin.Engine {
 	r.POST("/api/submissions", subH.CreateSubmission)
 
 	auth := r.Group("/")
-	auth.Use(middleware.AuthMiddleware())
+	auth.Use(middleware.AuthMiddleware("admin"))
 	{
 		auth.POST("/api/manual_add", statsH.ManualAdd)
 		auth.POST("/api/summaries/delete", statsH.DeleteSummary)
@@ -69,6 +71,13 @@ func Setup(db *gorm.DB) *gin.Engine {
 		auth.GET("/api/submissions", subH.GetPending)
 		auth.GET("/api/submissions/history", subH.GetHistory)
 		auth.POST("/api/submissions/:sub_id/:action", subH.ProcessSubmission)
+		auth.POST("/api/users", userH.CreateUser)
+	}
+
+	protected := r.Group("/")
+	protected.Use(middleware.AuthMiddleware("admin", "user"))
+	{
+		protected.POST("/api/loadouts", loadoutH.AddLoadout)
 	}
 
 	return r

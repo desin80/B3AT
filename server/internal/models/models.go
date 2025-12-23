@@ -142,6 +142,15 @@ type DeleteDetailModel struct {
 	LoadoutHash string `json:"loadout_hash"`
 }
 
+type User struct {
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	Username     string `gorm:"uniqueIndex;not null" json:"username"`
+	PasswordHash string `gorm:"not null" json:"-"`
+	Role         string `gorm:"not null" json:"role"` // admin | user
+	CreatedAt    int64  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt    int64  `gorm:"autoUpdateTime" json:"updated_at"`
+}
+
 type CommentRequest struct {
 	Server   string `json:"server"`
 	AtkSig   string `json:"atk_sig"`

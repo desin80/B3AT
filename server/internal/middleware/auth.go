@@ -7,17 +7,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 	"server/internal/config"
 )
 
 type AdminClaims struct {
 	Username string `json:"sub"`
+	Role     string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(username string) (string, error) {
+var DBInstance *gorm.DB
+
+func GenerateToken(username string, role string) (string, error) {
 	claims := AdminClaims{
 		Username: username,
+		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * 60 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -28,7 +33,7 @@ func GenerateToken(username string) (string, error) {
 	return token.SignedString([]byte(config.AppConfig.SecretKey))
 }
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -55,19 +60,28 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if claims, ok := token.Claims.(*AdminClaims); ok {
-			if claims.Username != config.AppConfig.AdminUsername {
-				c.JSON(http.StatusUnauthorized, gin.H{"detail": "Invalid credentials"})
-				c.Abort()
-				return
-			}
-			c.Set("username", claims.Username)
-		} else {
+		claims, ok := token.Claims.(*AdminClaims)
+		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"detail": "Invalid claims"})
 			c.Abort()
 			return
 		}
 
+		allowed := false
+		for _, r := range roles {
+			if claims.Role == r {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			c.JSON(http.StatusUnauthorized, gin.H{"detail": "Insufficient role"})
+			c.Abort()
+			return
+		}
+
+		c.Set("username", claims.Username)
+		c.Set("role", claims.Role)
 		c.Next()
 	}
 }

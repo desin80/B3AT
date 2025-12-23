@@ -14,7 +14,7 @@ const LoginPage = () => {
         e.preventDefault();
         try {
             const data = await api.login(username, password);
-            login(data.access_token);
+            login(data.access_token, data.role || "user");
             navigate("/");
         } catch (err) {
             setError("Invalid credentials");

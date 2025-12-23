@@ -43,6 +43,7 @@ func InitDB() {
 		&models.ArenaStatsDetail{},
 		&models.Comment{},
 		&models.Submission{},
+		&models.User{},
 	)
 	if err != nil {
 		log.Fatal("Migration failed:", err)
