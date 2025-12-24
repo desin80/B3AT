@@ -39,6 +39,9 @@ const api = {
 
         const res = await fetch(`${API_BASE}/upload`, {
             method: "POST",
+            headers: {
+                ...getAuthHeaders(),
+            },
             body: formData,
         });
 

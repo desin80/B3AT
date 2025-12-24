@@ -24,7 +24,13 @@ func Setup(db *gorm.DB) *gin.Engine {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = config.AppConfig.AllowedOrigins
 	corsConfig.AllowCredentials = true
-	corsConfig.AllowHeaders = []string{"*"}
+	corsConfig.AllowHeaders = []string{
+		"Authorization",
+		"Content-Type",
+		"Accept",
+		"Origin",
+		"X-Requested-With",
+	}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	r.Use(cors.New(corsConfig))
 

@@ -71,6 +71,20 @@ func (h *LoadoutHandler) AddLoadout(c *gin.Context) {
 		return
 	}
 
+	isZeroLoadout := func(arr []models.LoadoutEntry) bool {
+		if len(arr) == 0 {
+			return true
+		}
+		for _, e := range arr {
+			if e.Star > 0 || e.WeaponStar > 0 {
+				return false
+			}
+		}
+		return true
+	}
+
+	skipDetail := isZeroLoadout(req.AtkLoadout) && isZeroLoadout(req.DefLoadout)
+
 	detailUpdate := models.StatsDetailUpdateDTO{
 		Server:      req.Server,
 		Season:      req.Season,
@@ -100,10 +114,12 @@ func (h *LoadoutHandler) AddLoadout(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
 	}
-	_, err = h.Repo.BatchUpsertDetails([]models.StatsDetailUpdateDTO{detailUpdate})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
-		return
+	if !skipDetail {
+		_, err = h.Repo.BatchUpsertDetails([]models.StatsDetailUpdateDTO{detailUpdate})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Loadout added"})
