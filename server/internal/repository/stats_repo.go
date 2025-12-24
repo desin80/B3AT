@@ -94,7 +94,24 @@ func (r *StatsRepository) BatchUpsertStats(updates []models.StatsUpdateDTO) (int
 				stats.WilsonScore = wScore
 				stats.AvgWinRate = pMean
 
-				if err := tx.Save(&stats).Error; err != nil {
+				if err := tx.Clauses(clause.OnConflict{
+					Columns: []clause.Column{
+						{Name: "server"},
+						{Name: "season"},
+						{Name: "tag"},
+						{Name: "atk_team_sig"},
+						{Name: "def_team_sig"},
+					},
+					DoUpdates: clause.AssignmentColumns([]string{
+						"atk_team_json",
+						"def_team_json",
+						"total_battles",
+						"total_wins",
+						"last_seen",
+						"wilson_score",
+						"avg_win_rate",
+					}),
+				}).Create(&stats).Error; err != nil {
 					return err
 				}
 			}
@@ -186,7 +203,27 @@ func (r *StatsRepository) BatchUpsertDetails(updates []models.StatsDetailUpdateD
 				detail.WilsonScore = wScore
 				detail.AvgWinRate = pMean
 
-				if err := tx.Save(&detail).Error; err != nil {
+				if err := tx.Clauses(clause.OnConflict{
+					Columns: []clause.Column{
+						{Name: "server"},
+						{Name: "season"},
+						{Name: "tag"},
+						{Name: "atk_team_sig"},
+						{Name: "def_team_sig"},
+						{Name: "loadout_hash"},
+					},
+					DoUpdates: clause.AssignmentColumns([]string{
+						"atk_team_json",
+						"def_team_json",
+						"atk_loadout_json",
+						"def_loadout_json",
+						"total_battles",
+						"total_wins",
+						"last_seen",
+						"wilson_score",
+						"avg_win_rate",
+					}),
+				}).Create(&detail).Error; err != nil {
 					return err
 				}
 			}
