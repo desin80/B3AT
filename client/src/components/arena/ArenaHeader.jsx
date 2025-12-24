@@ -17,9 +17,9 @@ const ArenaHeader = ({
     return (
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 bg-white/50 p-4 rounded-lg border border-gray-200 backdrop-blur-sm gap-4">
             <div className="flex flex-wrap items-center gap-4">
-                <h2 className="text-xl font-bold text-gray-800">
+                {/* <h2 className="text-xl font-bold text-gray-800">
                     {t("arena.title")}
-                </h2>
+                </h2> */}
                 <button
                     onClick={() => setShowFilter(!showFilter)}
                     className={`text-sm px-3 py-1.5 rounded-md border transition-all flex items-center gap-2 ${
