@@ -5,6 +5,8 @@ import HomePage from "./pages/Home/HomePage";
 import ArenaPage from "./pages/Arena/ArenaPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import LoginPage from "./pages/Login/LoginPage";
+import ResetPage from "./pages/Reset/ResetPage";
+import UserAdminPage from "./pages/Admin/UserAdminPage";
 import { AuthProvider } from "./context/AuthContext";
 import { UIProvider } from "./context/UIContext";
 
@@ -19,6 +21,8 @@ function App() {
                             <Route path="arena" element={<ArenaPage />} />
                             <Route path="settings" element={<SettingsPage />} />
                             <Route path="login" element={<LoginPage />} />
+                            <Route path="reset" element={<ResetPage />} />
+                            <Route path="admin/users" element={<UserAdminPage />} />
                             <Route
                                 path="*"
                                 element={

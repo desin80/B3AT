@@ -2,7 +2,8 @@
     "nav": {
         "home": "首页",
         "arena": "竞技场",
-        "settings": "数据管理"
+        "settings": "数据管理",
+        "users": "用户"
     },
     "home": {
         "character": {
@@ -31,6 +32,58 @@
         "delete_success": "删除成功",
         "delete_confirm": "确认删除",
         "empty": "空"
+    },
+    "auth": {
+        "portal": "BA Arena Console",
+        "secure_login": "登录",
+        "login_title": "登录",
+        "login_subtitle": "输入账号密码",
+        "login_error": "用户名或密码错误",
+        "username": "用户名",
+        "password": "密码",
+        "login_btn": "登录",
+        "reset_title": "重置密码",
+        "reset_subtitle": "输入账号、旧密码、新密码",
+        "old_password": "旧密码",
+        "new_password": "新密码",
+        "confirm_password": "确认新密码",
+        "reset_mismatch": "两次新密码不一致",
+        "reset_success": "已更新密码，请再次登录",
+        "reset_updating": "更新中...",
+        "reset_cta": "重置密码",
+        "back_login": "返回登录"
+    },
+    "admin_users": {
+        "title": "用户管理",
+        "total": "共 {{count}} 个用户",
+        "loading": "加载中...",
+        "add_user": "添加用户",
+        "username": "用户名",
+        "password": "密码",
+        "role": "角色",
+        "role_admin": "管理员",
+        "role_user": "普通用户",
+        "create": "创建",
+        "list_title": "用户列表",
+        "refresh": "刷新",
+        "no_users": "还没有用户。",
+        "promote": "升为管理员",
+        "demote": "设为普通用户",
+        "delete": "删除",
+        "delete_confirm": "删除用户“{{name}}”？",
+        "only_admin": "仅管理员可访问此页面。",
+        "goto_login": "前往登录",
+        "created": "已创建用户",
+        "role_updated": "已更新角色",
+        "deleted": "已删除用户",
+        "error_load": "加载用户失败",
+        "error_create": "创建用户失败",
+        "error_role": "更新角色失败",
+        "error_delete": "删除用户失败",
+        "created_time": "创建时间",
+        "updated_time": "更新时间",
+        "actions": "操作",
+        "no_self_delete": "不能删除当前登录账号"
     },
     "settings": {
         "title": "数据管理",

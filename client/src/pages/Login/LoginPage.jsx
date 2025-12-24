@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 
@@ -9,15 +10,16 @@ const LoginPage = () => {
     const [error, setError] = useState("");
     const { login } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
             const data = await api.login(username, password);
-            login(data.access_token, data.role || "user");
+            login(data.access_token, data.role || "user", username);
             navigate("/");
         } catch (err) {
-            setError("Invalid credentials");
+            setError(t("auth.login_error", "Invalid credentials"));
         }
     };
 
@@ -25,7 +27,7 @@ const LoginPage = () => {
         <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in-up">
             <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 w-full max-w-md">
                 <h2 className="text-2xl font-bold mb-6 text-gray-800 text-center">
-                    Admin Login
+                    {t("auth.login_title", "Admin Login")}
                 </h2>
                 {error && (
                     <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
@@ -35,7 +37,7 @@ const LoginPage = () => {
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            Username
+                            {t("auth.username", "Username")}
                         </label>
                         <input
                             type="text"
@@ -46,7 +48,7 @@ const LoginPage = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            Password
+                            {t("auth.password", "Password")}
                         </label>
                         <input
                             type="password"
@@ -59,7 +61,7 @@ const LoginPage = () => {
                         type="submit"
                         className="w-full bg-sky-600 text-white py-2 rounded-md hover:bg-sky-700 transition-colors font-bold"
                     >
-                        Login
+                        {t("auth.login_btn", "Login")}
                     </button>
                 </form>
             </div>

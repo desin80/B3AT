@@ -65,14 +65,24 @@ const Layout = () => {
                                 >
                                     {t("nav.arena")}
                                 </Link>
+                            <Link
+                                to="/settings"
+                                className={`px-4 py-2 rounded-md text-sm transition-colors ${isActive(
+                                    "/settings"
+                                )}`}
+                            >
+                                {t("nav.settings")}
+                            </Link>
+                            {isAdmin && (
                                 <Link
-                                    to="/settings"
+                                    to="/admin/users"
                                     className={`px-4 py-2 rounded-md text-sm transition-colors ${isActive(
-                                        "/settings"
+                                        "/admin/users"
                                     )}`}
                                 >
-                                    {t("nav.settings")}
+                                    {t("nav.users", "Users")}
                                 </Link>
+                            )}
                             </div>
                         </div>
                         <div className="flex items-center space-x-3">

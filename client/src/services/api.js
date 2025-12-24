@@ -31,6 +31,21 @@ const api = {
         return await res.json();
     },
 
+    resetPassword: async (username, oldPassword, newPassword) => {
+        const res = await fetch(`${API_BASE}/reset_password`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username,
+                old_password: oldPassword,
+                new_password: newPassword,
+            }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Reset password failed");
+        return data;
+    },
+
     uploadData: async (file, defaultServer = "global", defaultSeason = 9) => {
         const formData = new FormData();
         formData.append("file", file);
@@ -302,6 +317,50 @@ const api = {
         });
         if (!res.ok) throw new Error("Revert failed");
         return await res.json();
+    },
+    getUsers: async () => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/users`, { headers });
+        if (!res.ok) throw new Error("Failed to load users");
+        return await res.json();
+    },
+    createUser: async (username, password, role = "user") => {
+        const headers = {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+        };
+        const res = await fetch(`${API_BASE}/users`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ username, password, role }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Create user failed");
+        return data;
+    },
+    updateUserRole: async (id, role) => {
+        const headers = {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+        };
+        const res = await fetch(`${API_BASE}/users/${id}/role`, {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({ role }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Update role failed");
+        return data;
+    },
+    deleteUser: async (id) => {
+        const headers = getAuthHeaders();
+        const res = await fetch(`${API_BASE}/users/${id}`, {
+            method: "DELETE",
+            headers,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || "Delete user failed");
+        return data;
     },
 };
 

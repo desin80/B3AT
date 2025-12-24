@@ -41,6 +41,7 @@ func Setup(db *gorm.DB) *gin.Engine {
 	})
 
 	r.POST("/api/token", handlers.Login)
+	r.POST("/api/reset_password", userH.ResetPassword)
 	r.GET("/api/seasons", battlesH.GetSeasons)
 	r.GET("/api/summaries", statsH.GetSummaries)
 	r.GET("/api/summaries/detail", statsH.GetSummaryDetails)
@@ -78,6 +79,9 @@ func Setup(db *gorm.DB) *gin.Engine {
 		auth.GET("/api/submissions/history", subH.GetHistory)
 		auth.POST("/api/submissions/:sub_id/:action", subH.ProcessSubmission)
 		auth.POST("/api/users", userH.CreateUser)
+		auth.GET("/api/users", userH.ListUsers)
+		auth.PUT("/api/users/:id/role", userH.UpdateUserRole)
+		auth.DELETE("/api/users/:id", userH.DeleteUser)
 	}
 
 	protected := r.Group("/")
