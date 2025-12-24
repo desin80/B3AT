@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -25,15 +26,16 @@ type LoadoutRequest struct {
 	DefTeam    []int                 `json:"def_team" binding:"required"`
 	AtkLoadout []models.LoadoutEntry `json:"atk_loadout"`
 	DefLoadout []models.LoadoutEntry `json:"def_loadout"`
-	Wins       int                   `json:"wins" binding:"required"`
-	Losses     int                   `json:"losses" binding:"required"`
+	Wins       int                   `json:"wins"`
+	Losses     int                   `json:"losses"`
 	Timestamp  *int64                `json:"timestamp"`
 }
 
 func (h *LoadoutHandler) AddLoadout(c *gin.Context) {
 	var req LoadoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"detail": "Invalid JSON"})
+		log.Printf("loadouts bind error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
 		return
 	}
 
