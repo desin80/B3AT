@@ -99,41 +99,59 @@ npm run dev
 
 ## JSON 数据示例 (Data Format)
 
-批量上传（仅管理员可用）的文件必须为 **JSON 数组** 格式。
+批量上传（仅管理员可用）的文件必须为 **JSON 数组**，每个元素与 `/api/loadouts` 的入参一致。
 
 ```json
 [
     {
-        "Server": "global",
-        "Season": 9,
-        "Tag": "tag_low_atk",
-        "Win": true,
-        "AttackingTeamIds": [10017, 10025, 20015, 20022, 10055, 20011],
-        "DefendingTeamIds": [10010, 10033, 20008, 20009, 13008, 20025],
-        "Time": "2023-10-27T14:30:00"
+        "server": "global",
+        "season": 9,
+        "tag": "",
+        "atk_team": [10017, 10025, 20015, 20022, 10055, 20011],
+        "def_team": [10010, 10033, 20008, 20009, 13008, 20025],
+        "atk_loadout": [
+            { "id": 10017, "star": 5, "weapon_star": 4 },
+            { "id": 10025, "star": 3, "weapon_star": 0 },
+            ...
+        ],
+        "def_loadout": [{ "id": 10010, "star": 5, "weapon_star": 5 },...],
+        "wins": 3,
+        "losses": 1,
+        "timestamp": 1735590000
     },
     {
-        "Server": "japan",
-        "Season": 10,
-        "Win": false,
-        "AttackingTeamIds": [10017, 10025, 20015, 20022],
-        "DefendingTeamIds": [13008, 10055, 20011, 20025],
-        "Time": "2023-10-28T09:15:00"
+        "server": "japan",
+        "season": 10,
+        "atk_team": [10017, 10025, 20015, 20022],
+        "def_team": [13008, 10055, 20011, 20025],
+        "wins": 0,
+        "losses": 2
     }
 ]
 ```
 
 ### 字段详细说明
 
-| 字段名 (Field)       | 类型 (Type)  | 说明 (Description)                             |
-| :------------------- | :----------- | :--------------------------------------------- |
-| **Win**              | Boolean      | `true` 为进攻胜利，`false` 为失败              |
-| **AttackingTeamIds** | Array\<Int\> | 进攻方学生 ID 列表                             |
-| **DefendingTeamIds** | Array\<Int\> | 防守方学生 ID 列表                             |
-| **Server**           | String       | 服务器 (如 `global`, `japan`)，默认为 `global` |
-| **Season**           | Integer      | 赛季编号，默认为 `9`                           |
-| **Tag**              | String       | 自定义标签 (如压攻)                            |
-| **Time**             | String       | 战斗时间 (ISO 8601 格式)，不填则默认为上传时间 |
+| 字段名 (Field)  | 类型 (Type)      | 说明 (Description)                             |
+| :-------------- | :--------------- | :--------------------------------------------- |
+| **server**      | String           | 服务器 (如 `global`, `japan`)，默认为 `global` |
+| **season**      | Integer          | 赛季编号，默认为 `9`                           |
+| **tag**         | String           | 自定义标签（暂时留空）                         |
+| **atk_team**    | Array\<Int\>     | 进攻方学生 ID 列表（必填）                     |
+| **def_team**    | Array\<Int\>     | 防守方学生 ID 列表（必填）                     |
+| **atk_loadout** | Array\<Loadout\> | 可选，顺序与 `atk_team` 对齐                   |
+| **def_loadout** | Array\<Loadout\> | 可选，顺序与 `def_team` 对齐                   |
+| **wins**        | Integer          | 进攻胜场数，必须 >= 0                          |
+| **losses**      | Integer          | 进攻败场数，必须 >= 0，且 `wins + losses > 0`  |
+| **timestamp**   | Integer          | Unix 秒级时间戳，缺省时使用上传时间            |
+
+#### Loadout 结构
+
+| 字段名 (Field)  | 类型 (Type) | 说明 (Description)                         |
+| :-------------- | :---------- | :----------------------------------------- |
+| **id**          | Integer     | 学生 ID，需出现在对应队伍中                |
+| **star**        | Integer     | 星级，默认 0                               |
+| **weapon_star** | Integer     | 专武星级，默认 0；若 > 0 则要求 `star > 0` |
 
 ---
 

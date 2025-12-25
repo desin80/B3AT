@@ -99,41 +99,58 @@ Visit `/login` directly to log in as an administrator.
 
 ## JSON Data Format
 
-The file for batch upload (Admin only) must be in **JSON Array** format.
+The batch upload file (Admin only) must be a **JSON array**. Each item matches the `/api/loadouts` payload.
 
 ```json
 [
     {
-        "Server": "global",
-        "Season": 9,
-        "Tag": "tag_low_atk",
-        "Win": true,
-        "AttackingTeamIds": [10017, 10025, 20015, 20022, 10055, 20011],
-        "DefendingTeamIds": [10010, 10033, 20008, 20009, 13008, 20025],
-        "Time": "2023-10-27T14:30:00"
+        "server": "global",
+        "season": 9,
+        "tag": "",
+        "atk_team": [10017, 10025, 20015, 20022, 10055, 20011],
+        "def_team": [10010, 10033, 20008, 20009, 13008, 20025],
+        "atk_loadout": [
+            { "id": 10017, "star": 5, "weapon_star": 4 },
+            { "id": 10025, "star": 3, "weapon_star": 0 }
+        ],
+        "def_loadout": [{ "id": 10010, "star": 5, "weapon_star": 5 }],
+        "wins": 3,
+        "losses": 1,
+        "timestamp": 1735590000
     },
     {
-        "Server": "japan",
-        "Season": 10,
-        "Win": false,
-        "AttackingTeamIds": [10017, 10025, 20015, 20022],
-        "DefendingTeamIds": [13008, 10055, 20011, 20025],
-        "Time": "2023-10-28T09:15:00"
+        "server": "japan",
+        "season": 10,
+        "atk_team": [10017, 10025, 20015, 20022],
+        "def_team": [13008, 10055, 20011, 20025],
+        "wins": 0,
+        "losses": 2
     }
 ]
 ```
 
 ### Field Description
 
-| Field                | Type         | Description                                                        |
-| :------------------- | :----------- | :----------------------------------------------------------------- |
-| **Win**              | Boolean      | `true` for Attack Win, `false` for Defend Win (Attack Loss).       |
-| **AttackingTeamIds** | Array\<Int\> | List of Attacker Student IDs.                                      |
-| **DefendingTeamIds** | Array\<Int\> | List of Defender Student IDs.                                      |
-| **Server**           | String       | Server region (e.g., `global`, `japan`). Default: `global`.        |
-| **Season**           | Integer      | Season number. Default: `9`.                                       |
-| **Tag**              | String       | Custom tag (e.g., `tag_low_atk`).                                  |
-| **Time**             | String       | Battle time (ISO 8601 format). Defaults to upload time if omitted. |
+| Field           | Type             | Description                                                      |
+| :-------------- | :--------------- | :--------------------------------------------------------------- |
+| **server**      | String           | Server region (e.g., `global`, `japan`). Default: `global`.      |
+| **season**      | Integer          | Season number. Default: `9`.                                     |
+| **tag**         | String           | Custom tag (optional).                                           |
+| **atk_team**    | Array\<Int\>     | Attacker student IDs (required).                                 |
+| **def_team**    | Array\<Int\>     | Defender student IDs (required).                                 |
+| **atk_loadout** | Array\<Loadout\> | Optional; aligns with `atk_team` order.                          |
+| **def_loadout** | Array\<Loadout\> | Optional; aligns with `def_team` order.                          |
+| **wins**        | Integer          | Attack wins; must be >= 0.                                       |
+| **losses**      | Integer          | Attack losses; must be >= 0 and `wins + losses > 0`.             |
+| **timestamp**   | Integer          | Unix timestamp (seconds). Defaults to current time when omitted. |
+
+#### Loadout Schema
+
+| Field           | Type    | Description                                                  |
+| :-------------- | :------ | :----------------------------------------------------------- |
+| **id**          | Integer | Student ID; must exist in the corresponding team.            |
+| **star**        | Integer | Star level; default 0.                                       |
+| **weapon_star** | Integer | Unique weapon star; default 0. If > 0, `star` must also > 0. |
 
 ---
 
