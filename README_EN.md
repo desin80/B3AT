@@ -50,15 +50,15 @@ Provides multi-dimensional statistical data, including win rate, sample size, po
 
 ---
 
-### 1. Backend Setup (Server)
+### 1. Backend Setup
 
-In the server directory, besides installing dependencies, you need to create a .env file to configure the admin credentials.
+In the `backend` directory, besides installing dependencies, you need to create a .env file to configure the admin credentials.
 
 ```bash
-cd server
+cd backend
 
 # 1. Create a configuration file .env
-# Copy the following content into server/.env:
+# Copy the following content into backend/.env:
 # -------------------------
 # PORT=8000
 # FRONTEND_URL=http://localhost:5173
@@ -72,18 +72,18 @@ cd server
 go run ./cmd/main.go
 ```
 
-### 2. Frontend Setup (Client)
+### 2. Frontend Setup
 
-In the `client` directory, you also need to configure the API URL.
+In the `frontend` directory, you also need to configure the API URL.
 
 ```bash
-cd client
+cd frontend
 
 # 1. Install dependencies
 npm install
 
 # 2. Create configuration file .env
-# Copy the following content into client/.env:
+# Copy the following content into frontend/.env:
 # -------------------------
 # VITE_API_BASE_URL=http://localhost:8000/api
 # -------------------------

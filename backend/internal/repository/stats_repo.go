@@ -324,7 +324,37 @@ func (r *StatsRepository) GetFilteredSummaries(q models.SummaryQueryDTO) ([]mode
 }
 
 func (r *StatsRepository) DeleteSummary(server string, season int, tag, atkSig, defSig string) (int64, error) {
-	result := r.DB.Where("server = ? AND season = ? AND tag = ? AND atk_team_sig = ? AND def_team_sig = ?",
+	return r.deleteSummary(r.DB, server, season, tag, atkSig, defSig)
+}
+
+func (r *StatsRepository) DeleteSummaryAndComments(server string, season int, tag, atkSig, defSig string) (int64, int64, error) {
+	var summaryDeleted int64
+	var commentsDeleted int64
+
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		deleted, err := r.deleteSummary(tx, server, season, tag, atkSig, defSig)
+		if err != nil {
+			return err
+		}
+		summaryDeleted = deleted
+		if summaryDeleted == 0 {
+			return nil
+		}
+
+		res := tx.Where("server = ? AND atk_sig = ? AND def_sig = ?", server, atkSig, defSig).
+			Delete(&models.Comment{})
+		if res.Error != nil {
+			return res.Error
+		}
+		commentsDeleted = res.RowsAffected
+		return nil
+	})
+
+	return summaryDeleted, commentsDeleted, err
+}
+
+func (r *StatsRepository) deleteSummary(db *gorm.DB, server string, season int, tag, atkSig, defSig string) (int64, error) {
+	result := db.Where("server = ? AND season = ? AND tag = ? AND atk_team_sig = ? AND def_team_sig = ?",
 		server, season, tag, atkSig, defSig).
 		Delete(&models.ArenaStats{})
 	return result.RowsAffected, result.Error
@@ -424,7 +454,7 @@ func (r *StatsRepository) recalcSummaryFromDetails(tx *gorm.DB, key detailKey) e
 
 	if agg.Total == 0 {
 		// No details left, remove summary if exists.
-		_, err := r.DeleteSummary(key.Server, key.Season, key.Tag, key.AtkSig, key.DefSig)
+		_, err := r.deleteSummary(tx, key.Server, key.Season, key.Tag, key.AtkSig, key.DefSig)
 		return err
 	}
 
@@ -440,18 +470,18 @@ func (r *StatsRepository) recalcSummaryFromDetails(tx *gorm.DB, key detailKey) e
 	pMean := utils.PosteriorMean(int(agg.Wins), int(agg.Total))
 
 	summary := models.ArenaStats{
-		Server:        key.Server,
-		Season:        key.Season,
-		Tag:           key.Tag,
-		AtkTeamSig:    key.AtkSig,
-		DefTeamSig:    key.DefSig,
-		AtkTeamJson:   models.IntArray(first.AtkTeamJson),
-		DefTeamJson:   models.IntArray(first.DefTeamJson),
-		TotalBattles:  int(agg.Total),
-		TotalWins:     int(agg.Wins),
-		LastSeen:      agg.LastSeen,
-		WilsonScore:   wScore,
-		AvgWinRate:    pMean,
+		Server:       key.Server,
+		Season:       key.Season,
+		Tag:          key.Tag,
+		AtkTeamSig:   key.AtkSig,
+		DefTeamSig:   key.DefSig,
+		AtkTeamJson:  models.IntArray(first.AtkTeamJson),
+		DefTeamJson:  models.IntArray(first.DefTeamJson),
+		TotalBattles: int(agg.Total),
+		TotalWins:    int(agg.Wins),
+		LastSeen:     agg.LastSeen,
+		WilsonScore:  wScore,
+		AvgWinRate:   pMean,
 	}
 
 	return tx.Clauses(clause.OnConflict{

@@ -66,7 +66,7 @@ func Setup(db *gorm.DB) *gin.Engine {
 			}
 			count := 0
 			for _, item := range req.Items {
-				if _, err := statsH.Repo.DeleteSummary(item.Server, item.Season, item.Tag, item.AtkSig, item.DefSig); err == nil {
+				if _, _, err := statsH.Repo.DeleteSummaryAndComments(item.Server, item.Season, item.Tag, item.AtkSig, item.DefSig); err == nil {
 					count++
 				}
 			}

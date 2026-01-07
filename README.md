@@ -50,15 +50,15 @@
 
 ---
 
-### 1. 后端配置与启动 (Server)
+### 1. 后端配置与启动 (Backend)
 
-在 server 目录下，除了安装依赖，你需要创建一个 .env 配置文件来设置管理员账号。
+在 `backend` 目录下，除了安装依赖，你需要创建一个 .env 配置文件来设置管理员账号。
 
 ```bash
-cd server
+cd backend
 
 # 1. 设置环境变量 (.env)
-# 在 server/.env 文件中创建如下内容：
+# 在 backend/.env 文件中创建如下内容：
 # -------------------------
 # PORT=8000
 # FRONTEND_URL=http://localhost:5173
@@ -72,18 +72,18 @@ cd server
 go run ./cmd/main.go
 ```
 
-### 2. 前端配置与启动 (Client)
+### 2. 前端配置与启动 (Frontend)
 
-在 `client` 目录下，同样需要配置 API 地址。
+在 `frontend` 目录下，同样需要配置 API 地址。
 
 ```bash
-cd client
+cd frontend
 
 # 1. 安装依赖
 npm install
 
 # 2. 创建配置文件 .env
-# 复制以下内容到 client/.env 文件中:
+# 复制以下内容到 frontend/.env 文件中:
 # -------------------------
 # VITE_API_BASE_URL=http://localhost:8000/api
 # -------------------------

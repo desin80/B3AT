@@ -1,7 +1,3 @@
-arena.db
-arena.db-shm
-arena.db-wal
-
 ##############################
 # Root-level ignores
 ##############################
@@ -12,24 +8,24 @@ Thumbs.db
 *.log
 
 ##############################
-# Client (React + Vite + Tailwind)
+# frontend
 ##############################
-client/node_modules/
-client/dist/
-client/.vite/
-client/pkg
-client/*.local
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/pkg
+frontend/*.local
 
 ##############################
-# Server (Go backend)
+# backend
 ##############################
-server/bin/
-server/dist/
-server/build/
-server/mock_data.json 
-server/mock.py 
-server/import_data.py
-server/scripts/
+backend/bin/
+backend/dist/
+backend/build/
+backend/mock_data.json 
+backend/mock.py 
+backend/import_data.py
+backend/scripts/
 
 # Go build artifacts
 *.exe
@@ -39,8 +35,12 @@ server/scripts/
 *.dylib
 
 # Go cache / module files
-server/pkg/
+.gocache/
+backend/pkg/
 *.out
+
+# Go formatter temp files
+*.go.[0-9]*
 
 # Coverage files
 coverage.txt
@@ -48,8 +48,8 @@ coverage.txt
 *.cover
 *.cov
 
-# Vendor directory (if not using `go mod vendor`)
-server/vendor/
+# Vendor directory
+backend/vendor/
 
 ##############################
 # IDE / Editors

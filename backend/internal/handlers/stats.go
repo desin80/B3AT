@@ -292,11 +292,11 @@ func (h *StatsHandler) DeleteSummary(c *gin.Context) {
 		return
 	}
 
-	count, err := h.Repo.DeleteSummary(req.Server, req.Season, req.Tag, req.AtkSig, req.DefSig)
+	count, commentsDeleted, err := h.Repo.DeleteSummaryAndComments(req.Server, req.Season, req.Tag, req.AtkSig, req.DefSig)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Deleted summary", "count": count})
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted summary", "count": count, "comments_deleted": commentsDeleted})
 }
