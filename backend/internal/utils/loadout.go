@@ -4,6 +4,8 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 
 	"server/internal/models"
@@ -32,22 +34,80 @@ func NormalizeLoadout(team []int, loadout []models.LoadoutEntry) []models.Loadou
 	return result
 }
 
-// BuildLoadoutHash turns loadout arrays into a deterministic hash string.
-// This stays stable even if fields expand, thanks to a SHA1 suffix.
+func normalizeEquipmentTiers(tiers []int) [3]int {
+	var out [3]int
+	for i := 0; i < 3 && i < len(tiers); i++ {
+		out[i] = tiers[i]
+	}
+	return out
+}
+
+func normalizePotentialStats(stats map[int]int) [3]int {
+	var out [3]int
+	if stats == nil {
+		return out
+	}
+	out[0] = stats[1]
+	out[1] = stats[2]
+	out[2] = stats[3]
+	return out
+}
+
+func loadoutEntrySignature(l models.LoadoutEntry) string {
+	eq := normalizeEquipmentTiers(l.EquipmentTiers)
+	pot := normalizePotentialStats(l.PotentialStats)
+
+	parts := []string{
+		strconv.Itoa(l.ID),
+		strconv.Itoa(l.Star),
+		strconv.Itoa(l.WeaponStar),
+		strconv.Itoa(l.Level),
+		strconv.Itoa(l.ExSkillLevel),
+		strconv.Itoa(l.PublicSkillLevel),
+		strconv.Itoa(l.PassiveSkillLevel),
+		strconv.Itoa(l.ExtraPassiveSkillLevel),
+		fmt.Sprintf("eq=%d,%d,%d", eq[0], eq[1], eq[2]),
+		fmt.Sprintf("gear=%d", l.GearTier),
+		fmt.Sprintf("pot=%d,%d,%d", pot[0], pot[1], pot[2]),
+	}
+
+	// If someone sends extra potential keys beyond 1..3, incorporate them deterministically.
+	if len(l.PotentialStats) > 0 {
+		var extraKeys []int
+		for k := range l.PotentialStats {
+			if k == 1 || k == 2 || k == 3 {
+				continue
+			}
+			extraKeys = append(extraKeys, k)
+		}
+		if len(extraKeys) > 0 {
+			sort.Ints(extraKeys)
+			var extras []string
+			for _, k := range extraKeys {
+				extras = append(extras, fmt.Sprintf("%d=%d", k, l.PotentialStats[k]))
+			}
+			parts = append(parts, "pot_extra="+strings.Join(extras, ","))
+		}
+	}
+
+	return strings.Join(parts, "-")
+}
+
 func BuildLoadoutHash(atk []models.LoadoutEntry, def []models.LoadoutEntry) string {
 	var atkParts []string
 	for _, l := range atk {
-		atkParts = append(atkParts, fmt.Sprintf("%d-%d-%d", l.ID, l.Star, l.WeaponStar))
+		atkParts = append(atkParts, loadoutEntrySignature(l))
 	}
 
 	var defParts []string
 	for _, l := range def {
-		defParts = append(defParts, fmt.Sprintf("%d-%d-%d", l.ID, l.Star, l.WeaponStar))
+		defParts = append(defParts, loadoutEntrySignature(l))
 	}
 
 	raw := fmt.Sprintf("%s||%s", strings.Join(atkParts, "|"), strings.Join(defParts, "|"))
 
 	hasher := sha1.New()
 	hasher.Write([]byte(raw))
-	return fmt.Sprintf("%s::%s", raw, hex.EncodeToString(hasher.Sum(nil))[:8])
+	sum := hasher.Sum(nil)              // 20 bytes
+	return hex.EncodeToString(sum[:16]) // 128-bit hex
 }

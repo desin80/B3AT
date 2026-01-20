@@ -24,6 +24,18 @@ type LoadoutEntry struct {
 	ID         int `json:"id"`
 	Star       int `json:"star"`
 	WeaponStar int `json:"weapon_star"`
+
+	Level int `json:"level,omitempty"`
+
+	ExSkillLevel           int `json:"ex_skill_level,omitempty"`
+	PublicSkillLevel       int `json:"public_skill_level,omitempty"`
+	PassiveSkillLevel      int `json:"passive_skill_level,omitempty"`
+	ExtraPassiveSkillLevel int `json:"extra_passive_skill_level,omitempty"`
+
+	EquipmentTiers []int `json:"equipment_tiers,omitempty"`
+	GearTier       int   `json:"gear_tier,omitempty"`
+
+	PotentialStats map[int]int `json:"potential_stats,omitempty"`
 }
 
 type LoadoutArray []LoadoutEntry
@@ -75,8 +87,8 @@ type Submission struct {
 	Season int    `gorm:"not null" json:"season"`
 	Tag    string `json:"tag"`
 
-	AtkTeamJson IntArray `gorm:"type:jsonb" json:"atk_team"`
-	DefTeamJson IntArray `gorm:"type:jsonb" json:"def_team"`
+	AtkTeamJson IntArray     `gorm:"type:jsonb" json:"atk_team"`
+	DefTeamJson IntArray     `gorm:"type:jsonb" json:"def_team"`
 	AtkLoadout  LoadoutArray `gorm:"type:jsonb" json:"atk_loadout"`
 	DefLoadout  LoadoutArray `gorm:"type:jsonb" json:"def_loadout"`
 
@@ -110,15 +122,15 @@ type ArenaStatsDetail struct {
 }
 
 type ManualAddRequest struct {
-	Server     string        `json:"server"`
-	Season     int           `json:"season"`
-	Tag        string        `json:"tag"`
-	AtkTeam    []int         `json:"atk_team"`
-	DefTeam    []int         `json:"def_team"`
-	AtkLoadout []LoadoutEntry`json:"atk_loadout"`
-	DefLoadout []LoadoutEntry`json:"def_loadout"`
-	Wins       int           `json:"wins"`
-	Losses     int           `json:"losses"`
+	Server     string         `json:"server"`
+	Season     int            `json:"season"`
+	Tag        string         `json:"tag"`
+	AtkTeam    []int          `json:"atk_team"`
+	DefTeam    []int          `json:"def_team"`
+	AtkLoadout []LoadoutEntry `json:"atk_loadout"`
+	DefLoadout []LoadoutEntry `json:"def_loadout"`
+	Wins       int            `json:"wins"`
+	Losses     int            `json:"losses"`
 }
 
 type DeleteSummaryModel struct {

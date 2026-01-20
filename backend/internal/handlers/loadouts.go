@@ -79,6 +79,25 @@ func (h *LoadoutHandler) AddLoadout(c *gin.Context) {
 			if e.Star > 0 || e.WeaponStar > 0 {
 				return false
 			}
+			if e.Level > 0 ||
+				e.ExSkillLevel > 0 ||
+				e.PublicSkillLevel > 0 ||
+				e.PassiveSkillLevel > 0 ||
+				e.ExtraPassiveSkillLevel > 0 ||
+				e.GearTier > 0 {
+				return false
+			}
+			for _, t := range e.EquipmentTiers {
+				if t > 0 {
+					return false
+				}
+			}
+			for _, v := range e.PotentialStats {
+				if v > 0 {
+					return false
+				}
+			}
+
 		}
 		return true
 	}

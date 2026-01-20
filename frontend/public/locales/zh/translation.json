@@ -236,6 +236,16 @@
             "title": "练度明细",
             "empty": "暂时没有练度明细",
             "loadout_label": "练度"
+        },
+        "progress": {
+            "no_data": "无练度数据",
+            "role": {
+                "striker": "前排",
+                "special": "后排"
+            },
+            "skills": "技能",
+            "equipment": "装备",
+            "potential": "能力解放"
         }
     }
 }

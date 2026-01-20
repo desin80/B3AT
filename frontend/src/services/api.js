@@ -6,6 +6,34 @@ const getAuthHeaders = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+const getDbLang = (lang = "en") => (lang && lang.startsWith("zh") ? "cn" : "en");
+
+const studentsMinCache = new Map(); // dbLang -> Promise<obj> | obj
+const getStudentsMinMap = async (lang = "en") => {
+    const dbLang = getDbLang(lang);
+
+    const cached = studentsMinCache.get(dbLang);
+    if (cached) {
+        return typeof cached.then === "function" ? await cached : cached;
+    }
+
+    const promise = (async () => {
+        const res = await fetch(
+            `https://schaledb.com/data/${dbLang}/students.min.json`
+        );
+        if (!res.ok) throw new Error("Failed to load student data");
+        const data = await res.json(); // { "10000": { ... } , ... }
+        studentsMinCache.set(dbLang, data);
+        return data;
+    })().catch((e) => {
+        studentsMinCache.delete(dbLang);
+        throw e;
+    });
+
+    studentsMinCache.set(dbLang, promise);
+    return await promise;
+};
+
 const api = {
     checkHealth: async () => {
         try {
@@ -70,18 +98,22 @@ const api = {
 
     getAllStudents: async (lang = "en") => {
         try {
-            const dbLang = lang.startsWith("zh") ? "zh" : "en";
-
-            const res = await fetch(
-                `https://schaledb.com/data/${dbLang}/students.json`
-            );
-            if (!res.ok) throw new Error("Failed to load student data");
-            const data = await res.json();
-
+            const data = await getStudentsMinMap(lang);
             return Object.values(data);
         } catch (e) {
             console.error(e);
             return [];
+        }
+    },
+
+    getStudentById: async (id, lang = "en") => {
+        if (!id) return null;
+        try {
+            const data = await getStudentsMinMap(lang);
+            return data[String(id)] || null;
+        } catch (e) {
+            console.error(e);
+            return null;
         }
     },
 

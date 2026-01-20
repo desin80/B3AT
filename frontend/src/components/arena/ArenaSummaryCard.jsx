@@ -13,6 +13,8 @@ import charStarIcon from "../../assets/char_star.png";
 import weaponStarIcon from "../../assets/weapon_star.png";
 import ArenaCommentSection from "./ArenaCommentSection";
 import LoadingSpinner from "../common/LoadingSpinner";
+import StudentProgressModal from "./StudentProgressModal";
+import StudentProgressPreview from "./StudentProgressPreview";
 
 const formatTeamStructure = (teamIds) => {
     const strikers = teamIds.filter((id) => String(id).startsWith("1"));
@@ -106,25 +108,50 @@ const LoadoutBadge = ({ star = 0, weaponStar = 0 }) => {
     );
 };
 
-const StudentCard = ({ studentId, isSpecial, loadout }) => {
+const LevelBadge = ({ level = 0 }) => {
+    if (!level || level <= 0) return null;
+    return (
+        <div className="level-badge" title={`Lv.${level}`}>
+            Lv.{level}
+        </div>
+    );
+};
+
+const StudentCard = ({
+    studentId,
+    isSpecial,
+    loadout,
+    onOpenProgress,
+    onPreviewProgress,
+    onClearPreview,
+}) => {
     const bgImage = studentId ? cardBg : unknownBg;
 
     const star = loadout?.star ?? 0;
     const weaponStar = loadout?.weapon_star ?? 0;
+    const level = loadout?.level ?? 0;
+
+    const canOpen = Boolean(studentId && loadout && onOpenProgress);
+    const canPreview = Boolean(studentId && loadout && onPreviewProgress);
 
     return (
         <div
-            className="rs-char-card"
-            title={
-                studentId
-                    ? `ID: ${studentId}${
-                          loadout
-                              ? `\nStar: ${star}\nWeapon: ${weaponStar}`
-                              : ""
-                      }`
-                    : "Empty"
-            }
+            className={`rs-char-card ${canOpen ? "progress-clickable" : ""}`}
             style={{ marginLeft: isSpecial ? "0.5rem" : "0" }}
+            onClick={(e) => {
+                if (!canOpen) return;
+                e.stopPropagation();
+                onOpenProgress(studentId, loadout);
+            }}
+            onMouseEnter={(e) => {
+                if (!canPreview) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                onPreviewProgress(studentId, loadout, rect);
+            }}
+            onMouseLeave={() => {
+                if (!canPreview) return;
+                onClearPreview?.();
+            }}
         >
             <div
                 className="background-plate"
@@ -143,13 +170,22 @@ const StudentCard = ({ studentId, isSpecial, loadout }) => {
                 />
             )}
             {studentId && loadout && (
-                <LoadoutBadge star={star} weaponStar={weaponStar} />
+                <>
+                    <LevelBadge level={level} />
+                    <LoadoutBadge star={star} weaponStar={weaponStar} />
+                </>
             )}
         </div>
     );
 };
 
-const TeamAvatars = ({ teamIds, loadouts }) => {
+const TeamAvatars = ({
+    teamIds,
+    loadouts,
+    onOpenProgress,
+    onPreviewProgress,
+    onClearPreview,
+}) => {
     const { strikers, specials } = formatTeamStructure(teamIds);
 
     const loadoutMap = useMemo(() => {
@@ -161,13 +197,19 @@ const TeamAvatars = ({ teamIds, loadouts }) => {
     }, [loadouts]);
 
     return (
-        <div className="team-avatars" onMouseDown={(e) => e.stopPropagation()}>
+        <div
+            className="team-avatars"
+            onMouseDown={(e) => e.stopPropagation()}
+        >
             {strikers.map((id, index) => (
                 <StudentCard
                     key={`striker-${index}`}
                     studentId={id}
                     isSpecial={false}
                     loadout={loadoutMap[id]}
+                    onOpenProgress={onOpenProgress}
+                    onPreviewProgress={onPreviewProgress}
+                    onClearPreview={onClearPreview}
                 />
             ))}
 
@@ -177,6 +219,9 @@ const TeamAvatars = ({ teamIds, loadouts }) => {
                     studentId={id}
                     isSpecial={index === 0}
                     loadout={loadoutMap[id]}
+                    onOpenProgress={onOpenProgress}
+                    onPreviewProgress={onPreviewProgress}
+                    onClearPreview={onClearPreview}
                 />
             ))}
         </div>
@@ -205,6 +250,36 @@ const ArenaSummaryCard = ({
     const [detailPage, setDetailPage] = useState(1);
     const [detailSort, setDetailSort] = useState("default");
     const [detailTotalPages, setDetailTotalPages] = useState(0);
+    const [progressModal, setProgressModal] = useState({
+        isOpen: false,
+        studentId: null,
+        loadout: null,
+        sideLabel: "",
+    });
+    const [progressPreview, setProgressPreview] = useState({
+        isOpen: false,
+        studentId: null,
+        loadout: null,
+        anchorRect: null,
+    });
+
+    const clearPreview = () =>
+        setProgressPreview({
+            isOpen: false,
+            studentId: null,
+            loadout: null,
+            anchorRect: null,
+        });
+
+    const openProgressModal = (studentId, loadout, sideLabel) => {
+        clearPreview();
+        setProgressModal({
+            isOpen: true,
+            studentId,
+            loadout,
+            sideLabel,
+        });
+    };
 
     const winRate = (summary.winRate * 100).toFixed(0);
     const smoothRate = (summary.avgWinRate * 100).toFixed(1);
@@ -325,21 +400,39 @@ const ArenaSummaryCard = ({
     };
 
     return (
-        <div
-            onClick={handleCardClick}
-            className={`arena-card flex flex-col items-start p-0 transition-all duration-200 cursor-pointer relative group/card select-none
-                ${
-                    isChecked
-                        ? "ring-2 ring-red-500 bg-red-50/50"
-                        : isSelected
-                        ? "selected-highlight"
-                        : ""
+        <>
+            <StudentProgressModal
+                isOpen={progressModal.isOpen}
+                onClose={() =>
+                    setProgressModal({
+                        isOpen: false,
+                        studentId: null,
+                        loadout: null,
+                        sideLabel: "",
+                    })
                 }
-            `}
-            title={
-                isAdmin ? "Hold Ctrl + Click to select for batch delete" : ""
-            }
-        >
+                studentId={progressModal.studentId}
+                loadout={progressModal.loadout}
+                sideLabel={progressModal.sideLabel}
+            />
+            <StudentProgressPreview
+                isOpen={progressPreview.isOpen && !progressModal.isOpen}
+                studentId={progressPreview.studentId}
+                loadout={progressPreview.loadout}
+                anchorRect={progressPreview.anchorRect}
+            />
+            <div
+                onClick={handleCardClick}
+                className={`arena-card flex flex-col items-start p-0 transition-all duration-200 cursor-pointer relative group/card select-none
+                    ${
+                        isChecked
+                            ? "ring-2 ring-red-500 bg-red-50/50"
+                            : isSelected
+                            ? "selected-highlight"
+                            : ""
+                    }
+                `}
+            >
             {isAdmin && (
                 <button
                     onClick={handleDeleteClick}
@@ -676,10 +769,26 @@ const ArenaSummaryCard = ({
 
                                             <div className="flex items-center gap-2">
                                                 <div className="team-display-container">
-                                                    <TeamAvatars
-                                                        teamIds={item.attackingTeam}
-                                                        loadouts={item.atk_loadout}
-                                                    />
+                                            <TeamAvatars
+                                                teamIds={item.attackingTeam}
+                                                loadouts={item.atk_loadout}
+                                                onOpenProgress={(studentId, loadout) =>
+                                                    openProgressModal(
+                                                        studentId,
+                                                        loadout,
+                                                        "ATK"
+                                                    )
+                                                }
+                                                onPreviewProgress={(studentId, loadout, rect) =>
+                                                    setProgressPreview({
+                                                        isOpen: true,
+                                                        studentId,
+                                                        loadout,
+                                                        anchorRect: rect,
+                                                    })
+                                                }
+                                                onClearPreview={clearPreview}
+                                            />
                                                 <div className="icon-display attacking-icon">
                                                     <img
                                                         src={attackIcon}
@@ -702,6 +811,25 @@ const ArenaSummaryCard = ({
                                                 <TeamAvatars
                                                     teamIds={item.defendingTeam}
                                                     loadouts={item.def_loadout}
+                                                    onOpenProgress={(
+                                                        studentId,
+                                                        loadout
+                                                    ) =>
+                                                        openProgressModal(
+                                                            studentId,
+                                                            loadout,
+                                                            "DEF"
+                                                        )
+                                                    }
+                                                    onPreviewProgress={(studentId, loadout, rect) =>
+                                                        setProgressPreview({
+                                                            isOpen: true,
+                                                            studentId,
+                                                            loadout,
+                                                            anchorRect: rect,
+                                                        })
+                                                    }
+                                                    onClearPreview={clearPreview}
                                                 />
                                             </div>
 
@@ -746,7 +874,8 @@ const ArenaSummaryCard = ({
                     defSig={summary.def_sig}
                 />
             )}
-        </div>
+            </div>
+        </>
     );
 };
 

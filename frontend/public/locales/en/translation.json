@@ -241,6 +241,16 @@
             "title": "Loadout Details",
             "empty": "No detailed loadouts yet.",
             "loadout_label": "Loadout"
+        },
+        "progress": {
+            "no_data": "No loadout data",
+            "role": {
+                "striker": "Striker",
+                "special": "Special"
+            },
+            "skills": "Skills",
+            "equipment": "Equipment",
+            "potential": "Potential"
         }
     }
 }
